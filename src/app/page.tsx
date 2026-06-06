@@ -7,9 +7,10 @@ import { InputForm } from "@/components/InputForm";
 import { LayoutView2D } from "@/components/LayoutView2D";
 import { PalletView3D } from "@/components/PalletView3D";
 import { Summary } from "@/components/Summary";
+import { LayerExplodedView } from "@/components/LayerExplodedView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, RotateCw, RefreshCw } from "lucide-react";
+import { Package, RotateCw, RefreshCw, Layers } from "lucide-react";
 
 const DEFAULT_INPUT: PalletizeInput = {
   productName: "",
@@ -25,6 +26,8 @@ export default function HomePage() {
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
   // 追踪上次计算时的输入，用于判断参数是否已变更
   const [lastCalcInput, setLastCalcInput] = useState<PalletizeInput | null>(null);
+  // 3D展示模式：stacked=整体堆叠, layers=分层展示
+  const [viewMode, setViewMode] = useState<"stacked" | "layers">("stacked");
 
   const handleCalculate = useCallback(() => {
     const res = calculatePalletPlan(input);
@@ -195,12 +198,46 @@ export default function HomePage() {
               {/* 3D可视化 + 托盘详情 */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2 bg-white border border-slate-200 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">成品托盘堆叠效果图</h3>
-                  <PalletView3D
-                    plan={selectedPlan}
-                    pallet={input.pallet}
-                    productName={input.productName || ""}
-                  />
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-slate-700">成品托盘堆叠效果图</h3>
+                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setViewMode("stacked")}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                          viewMode === "stacked"
+                            ? "bg-white text-blue-600 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        <Package className="h-3.5 w-3.5" />
+                        整体视图
+                      </button>
+                      <button
+                        onClick={() => setViewMode("layers")}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                          viewMode === "layers"
+                            ? "bg-white text-blue-600 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        <Layers className="h-3.5 w-3.5" />
+                        分层展示
+                      </button>
+                    </div>
+                  </div>
+                  {viewMode === "stacked" ? (
+                    <PalletView3D
+                      plan={selectedPlan}
+                      pallet={input.pallet}
+                      productName={input.productName || ""}
+                    />
+                  ) : (
+                    <LayerExplodedView
+                      plan={selectedPlan}
+                      pallet={input.pallet}
+                      productName={input.productName || ""}
+                    />
+                  )}
                 </div>
                 <div className="space-y-4">
                   {/* 托盘详情 */}
