@@ -1,228 +1,198 @@
 /**
  * 托盘打托排版算法
- * 支持单层内混合方向排列，确保箱体不超出托盘边界
- * 以毫米为计算单位，以分米(dm)为画图缩放单位
+ * 支持：矩形箱体、混合方向排列、交互式层编辑
  */
 
-/** 箱体尺寸（毫米） */
+// ==================== 类型定义 ====================
+
 export interface BoxDimensions {
-  length: number; // 长
-  width: number;  // 宽
-  height: number; // 高
+  length: number; // mm
+  width: number;  // mm
+  height: number; // mm
 }
 
-/** 托盘尺寸（毫米） */
 export interface PalletDimensions {
-  length: number; // 长
-  width: number;  // 宽
-  height: number; // 高（托盘本身高度）
+  length: number; // mm
+  width: number;  // mm
+  height: number; // mm
 }
 
-/** 单层内的排列区域（一段同方向的箱子组） */
+export interface TruckDimensions {
+  name: string;
+  length: number; // mm
+  width: number;  // mm
+  height: number; // mm
+}
+
 export interface LayerSection {
-  /** 沿托盘长度方向的箱子尺寸(mm) */
   boxAlongLength: number;
-  /** 沿托盘宽度方向的箱子尺寸(mm) */
   boxAlongWidth: number;
-  /** 沿托盘长度方向的排列数量 */
   countAlongLength: number;
-  /** 沿托盘宽度方向的排列数量 */
   countAlongWidth: number;
-  /** 沿宽度方向实际占用mm */
   usedWidth: number;
-  /** 箱数 */
   boxCount: number;
 }
 
-/** 排版方案 */
 export interface PalletPlan {
-  /** 方案编号 */
   id: number;
-  /** 摆放方向描述 */
   orientation: string;
-  /** 箱体在托盘上的有效尺寸（长×宽，即底面占位） */
   boxOnPalletLength: number;
   boxOnPalletWidth: number;
-  /** 箱体堆叠高度方向尺寸 */
   boxStackHeight: number;
-  /** 沿托盘长度方向排列数量（单一方向时） */
   countAlongLength: number;
-  /** 沿托盘宽度方向排列数量（单一方向时） */
   countAlongWidth: number;
-  /** 每层箱数 */
   boxesPerLayer: number;
-  /** 层数 */
   layers: number;
-  /** 每托总箱数 */
   totalBoxes: number;
-  /** 托盘总高度（含托盘本身） */
   totalHeight: number;
-  /** 空间利用率 */
   utilization: number;
-  /** 是否满足高度限制 */
   heightOk: boolean;
-  /** 覆盖区域尺寸（实际占用长×宽 mm） */
   coverageLength: number;
   coverageWidth: number;
-  /** 单层混合排列区域（用于2D精确绘制） */
   sections: LayerSection[];
-  /** 箱体原始尺寸 */
   originalBox: BoxDimensions;
 }
 
-/** 车辆/集装箱尺寸（毫米） */
-export interface TruckDimensions {
-  name: string;
-  length: number;  // 内部长
-  width: number;   // 内部宽
-  height: number;  // 内部高
-}
-
-/** 算法输入参数 */
 export interface PalletizeInput {
+  productName: string;
   box: BoxDimensions;
-  boxWeight?: number;       // 单箱重量(kg)
-  boxColor?: string;        // 箱体颜色
+  boxWeight: number;
+  boxColor: string;
+  useCase: boolean;
+  caseBox: BoxDimensions;
+  caseCount: number;
   pallet: PalletDimensions;
-  palletMaxLoad?: number;   // 托盘最大承重(kg)
-  maxHeight: number;        // 最大允许总高度（含托盘）
-  maxStackLayers?: number;  // 最大堆码层数（0或undefined表示不限）
-  productName?: string;     // 产品名称
-  truck?: TruckDimensions;  // 车辆/集装箱
+  maxHeight: number;
+  maxStackLayers: number;
+  palletType: string;
+  truckType: string;
+  truck: TruckDimensions | undefined;
 }
 
-/** 车辆装载结果 */
-export interface TruckLoadResult {
-  palletsPerRow: number;     // 每排托盘数
-  rows: number;              // 排数
-  totalPallets: number;      // 总托盘数
-  totalBoxes: number;        // 总箱数
-  totalWeight: number;       // 总重量(kg)
-  lengthUsed: number;        // 长度方向使用(mm)
-  widthUsed: number;         // 宽度方向使用(mm)
-  heightUsed: number;        // 高度方向使用(mm)
-  volumeUtilization: number; // 体积利用率
-}
-
-/** 算法输出结果 */
 export interface PalletizeResult {
-  /** 所有可行方案（按总箱数降序） */
   plans: PalletPlan[];
-  /** 最优方案 */
-  bestPlan: PalletPlan;
-  /** 输入参数回显 */
+  bestPlan: PalletPlan | null;
   input: PalletizeInput;
-  /** 车辆装载结果（可选） */
-  truckLoad?: TruckLoadResult;
 }
 
-/**
- * 6种箱体摆放方向
- * 每种方向定义：[沿托盘长方向的尺寸, 沿托盘宽方向的尺寸, 堆叠高度方向的尺寸]
- */
-function getOrientations(box: BoxDimensions): Array<{
-  alongLength: number;
-  alongWidth: number;
-  stackHeight: number;
-  label: string;
-}> {
-  const { length: l, width: w, height: h } = box;
+export interface TruckLoadResult {
+  palletsPerRow: number;
+  rows: number;
+  totalPallets: number;
+  totalBoxes: number;
+  totalWeight: number;
+  lengthUsed: number;
+  widthUsed: number;
+  heightUsed: number;
+  volumeUtilization: number;
+}
+
+// ==================== 托盘预设 ====================
+
+export const PALLET_PRESETS: { name: string; length: number; width: number; height: number }[] = [
+  { name: 'EUR/EUR 1/ISO1 1200×800mm', length: 1200, width: 800, height: 144 },
+  { name: 'EUR 2 (UK Pallet) 1200×1000mm', length: 1200, width: 1000, height: 144 },
+  { name: 'EUR 3/FIN/IPL/ISO2 1000×1200mm', length: 1000, width: 1200, height: 144 },
+  { name: 'UPL Pallet 1200×1100mm', length: 1200, width: 1100, height: 144 },
+  { name: 'HPL (EUR 6/ISO0) 600×800mm', length: 600, width: 800, height: 144 },
+  { name: 'QPL (Quarter) 600×400mm', length: 600, width: 400, height: 144 },
+  { name: 'PXL Pallet 1200×1200mm', length: 1200, width: 1200, height: 144 },
+  { name: 'American Standard 1219×1016mm', length: 1219, width: 1016, height: 152 },
+  { name: 'American 42"×42" 1067×1067mm', length: 1067, width: 1067, height: 152 },
+  { name: 'American 48"×48" 1219×1219mm', length: 1219, width: 1219, height: 152 },
+  { name: 'Australian Standard 1165×1165mm', length: 1165, width: 1165, height: 150 },
+  { name: 'Asian Standard 1100×1100mm', length: 1100, width: 1100, height: 150 },
+];
+
+// ==================== 车辆预设 ====================
+
+export const TRUCK_PRESETS: TruckDimensions[] = [
+  { name: 'Euro Truck Standard', length: 13600, width: 2480, height: 2700 },
+  { name: 'Euro Truck Mega', length: 13600, width: 2480, height: 3000 },
+  { name: 'US 53ft Trailer', length: 16154, width: 2591, height: 2743 },
+  { name: 'US 48ft Trailer', length: 14630, width: 2591, height: 2743 },
+  { name: '20ft Container', length: 5898, width: 2352, height: 2393 },
+  { name: '40ft Container', length: 12032, width: 2352, height: 2393 },
+  { name: '40ft HC Container', length: 12032, width: 2352, height: 2698 },
+  { name: '45ft HC Container', length: 13556, width: 2352, height: 2698 },
+];
+
+// ==================== 核心算法 ====================
+
+/** 获取箱体6种摆放方向 */
+function getOrientations(box: BoxDimensions) {
   return [
-    { alongLength: l, alongWidth: w, stackHeight: h, label: '平放(长×宽为底)' },
-    { alongLength: w, alongWidth: l, stackHeight: h, label: '平放旋转(宽×长为底)' },
-    { alongLength: l, alongWidth: h, stackHeight: w, label: '侧放(长×高为底)' },
-    { alongLength: h, alongWidth: l, stackHeight: w, label: '侧放旋转(高×长为底)' },
-    { alongLength: w, alongWidth: h, stackHeight: l, label: '竖放(宽×高为底)' },
-    { alongLength: h, alongWidth: w, stackHeight: l, label: '竖放旋转(高×宽为底)' },
+    { alongLength: box.length, alongWidth: box.width, stackHeight: box.height, label: '平放(LWH)' },
+    { alongLength: box.width, alongWidth: box.length, stackHeight: box.height, label: '平放(WLH)' },
+    { alongLength: box.length, alongWidth: box.height, stackHeight: box.width, label: '侧放(LHW)' },
+    { alongLength: box.height, alongWidth: box.length, stackHeight: box.width, label: '侧放(HLW)' },
+    { alongLength: box.width, alongWidth: box.height, stackHeight: box.length, label: '竖放(WHL)' },
+    { alongLength: box.height, alongWidth: box.width, stackHeight: box.length, label: '竖放(HWL)' },
   ];
 }
 
-/**
- * 尝试单一方向排列（全部箱子同方向）
- */
+/** 尝试单一方向排列 */
 function tryUniformLayout(
   palletLength: number,
   palletWidth: number,
   alongLength: number,
   alongWidth: number
 ): LayerSection[] | null {
-  const countAlongLength = Math.floor(palletLength / alongLength);
-  const countAlongWidth = Math.floor(palletWidth / alongWidth);
-  if (countAlongLength <= 0 || countAlongWidth <= 0) return null;
-
-  const usedWidth = countAlongWidth * alongWidth;
+  const countL = Math.floor(palletLength / alongLength);
+  const countW = Math.floor(palletWidth / alongWidth);
+  if (countL <= 0 || countW <= 0) return null;
   return [{
     boxAlongLength: alongLength,
     boxAlongWidth: alongWidth,
-    countAlongLength,
-    countAlongWidth,
-    usedWidth,
-    boxCount: countAlongLength * countAlongWidth,
+    countAlongLength: countL,
+    countAlongWidth: countW,
+    usedWidth: countW * alongWidth,
+    boxCount: countL * countW,
   }];
 }
 
-/**
- * 尝试混合方向排列
- * 思路：将托盘宽度分成两段，一段按方向A排列，剩余空间按方向B排列
- * 两种底面方向：原始(alongLength × alongWidth) 和 旋转(alongWidth × alongLength)
- */
+/** 尝试混合方向排列 */
 function tryMixedLayout(
   palletLength: number,
   palletWidth: number,
   alongLength: number,
   alongWidth: number
 ): LayerSection[] | null {
-  // 旋转后的方向
   const rotAlongLength = alongWidth;
   const rotAlongWidth = alongLength;
-
-  let bestSections: LayerSection[] | null = null;
   let bestTotal = 0;
+  let bestSections: LayerSection[] | null = null;
 
-  // 尝试方案1：先排若干行原始方向，剩余宽度排旋转方向
+  // 方案1：先排若干行原始方向，剩余宽度排旋转方向
   const maxRowsOriginal = Math.floor(palletWidth / alongWidth);
   for (let rowsOrig = 1; rowsOrig <= maxRowsOriginal; rowsOrig++) {
     const usedWidthOrig = rowsOrig * alongWidth;
     const remainWidth = palletWidth - usedWidthOrig;
 
-    // 剩余空间排旋转方向
-    const countL_rot = Math.floor(palletLength / rotAlongLength);
-    const countW_rot = Math.floor(remainWidth / rotAlongWidth);
-
-    if (countL_rot > 0 && countW_rot > 0) {
+    if (remainWidth >= rotAlongWidth) {
       const countL_orig = Math.floor(palletLength / alongLength);
-      const total = countL_orig * rowsOrig + countL_rot * countW_rot;
-      if (total > bestTotal) {
-        bestTotal = total;
-        bestSections = [
-          {
-            boxAlongLength: alongLength,
-            boxAlongWidth: alongWidth,
-            countAlongLength: countL_orig,
-            countAlongWidth: rowsOrig,
-            usedWidth: usedWidthOrig,
-            boxCount: countL_orig * rowsOrig,
-          },
-          {
-            boxAlongLength: rotAlongLength,
-            boxAlongWidth: rotAlongWidth,
-            countAlongLength: countL_rot,
-            countAlongWidth: countW_rot,
-            usedWidth: countW_rot * rotAlongWidth,
-            boxCount: countL_rot * countW_rot,
-          },
-        ];
+      const countL_rot = Math.floor(palletLength / rotAlongLength);
+      const countW_rot = Math.floor(remainWidth / rotAlongWidth);
+
+      if (countL_orig > 0 && countL_rot > 0 && countW_rot > 0) {
+        const total = countL_orig * rowsOrig + countL_rot * countW_rot;
+        if (total > bestTotal) {
+          bestTotal = total;
+          bestSections = [
+            { boxAlongLength: alongLength, boxAlongWidth: alongWidth, countAlongLength: countL_orig, countAlongWidth: rowsOrig, usedWidth: usedWidthOrig, boxCount: countL_orig * rowsOrig },
+            { boxAlongLength: rotAlongLength, boxAlongWidth: rotAlongWidth, countAlongLength: countL_rot, countAlongWidth: countW_rot, usedWidth: countW_rot * rotAlongWidth, boxCount: countL_rot * countW_rot },
+          ];
+        }
       }
     }
   }
 
-  // 尝试方案2：先排若干行旋转方向，剩余宽度排原始方向
+  // 方案2：先排若干行旋转方向，剩余宽度排原始方向
   const maxRowsRotated = Math.floor(palletWidth / rotAlongWidth);
   for (let rowsRot = 1; rowsRot <= maxRowsRotated; rowsRot++) {
     const usedWidthRot = rowsRot * rotAlongWidth;
     const remainWidth = palletWidth - usedWidthRot;
 
-    // 剩余空间排原始方向
     const countL_orig = Math.floor(palletLength / alongLength);
     const countW_orig = Math.floor(remainWidth / alongWidth);
 
@@ -232,22 +202,8 @@ function tryMixedLayout(
       if (total > bestTotal) {
         bestTotal = total;
         bestSections = [
-          {
-            boxAlongLength: rotAlongLength,
-            boxAlongWidth: rotAlongWidth,
-            countAlongLength: countL_rot,
-            countAlongWidth: rowsRot,
-            usedWidth: usedWidthRot,
-            boxCount: countL_rot * rowsRot,
-          },
-          {
-            boxAlongLength: alongLength,
-            boxAlongWidth: alongWidth,
-            countAlongLength: countL_orig,
-            countAlongWidth: countW_orig,
-            usedWidth: countW_orig * alongWidth,
-            boxCount: countL_orig * countW_orig,
-          },
+          { boxAlongLength: rotAlongLength, boxAlongWidth: rotAlongWidth, countAlongLength: countL_rot, countAlongWidth: rowsRot, usedWidth: usedWidthRot, boxCount: countL_rot * rowsRot },
+          { boxAlongLength: alongLength, boxAlongWidth: alongWidth, countAlongLength: countL_orig, countAlongWidth: countW_orig, usedWidth: countW_orig * alongWidth, boxCount: countL_orig * countW_orig },
         ];
       }
     }
@@ -256,89 +212,63 @@ function tryMixedLayout(
   return bestSections;
 }
 
-/**
- * 对每种摆放方向，计算最优单层排列
- */
+/** 对每种摆放方向，计算最优单层排列 */
 function findBestLayerLayout(
   palletLength: number,
   palletWidth: number,
   alongLength: number,
   alongWidth: number
 ): { sections: LayerSection[]; totalBoxes: number } {
-  // 先试单一方向
   const uniform = tryUniformLayout(palletLength, palletWidth, alongLength, alongWidth);
   const uniformTotal = uniform ? uniform.reduce((s, sec) => s + sec.boxCount, 0) : 0;
-
-  // 再试混合方向
   const mixed = tryMixedLayout(palletLength, palletWidth, alongLength, alongWidth);
   const mixedTotal = mixed ? mixed.reduce((s, sec) => s + sec.boxCount, 0) : 0;
 
-  // 选最优
-  if (mixedTotal > uniformTotal && mixed) {
-    return { sections: mixed, totalBoxes: mixedTotal };
-  }
-  if (uniform) {
-    return { sections: uniform, totalBoxes: uniformTotal };
-  }
+  if (mixedTotal > uniformTotal && mixed) return { sections: mixed, totalBoxes: mixedTotal };
+  if (uniform) return { sections: uniform, totalBoxes: uniformTotal };
   return { sections: [], totalBoxes: 0 };
 }
 
-/**
- * 计算打托方案
- */
+/** 计算打托方案（返回所有可行方案，按总箱数降序） */
 export function calculatePalletPlan(input: PalletizeInput): PalletizeResult {
   const { box, pallet, maxHeight, maxStackLayers } = input;
-  const effectiveMaxHeight = maxHeight - pallet.height; // 可用堆叠高度
+  const effectiveMaxHeight = maxHeight - pallet.height;
 
   if (effectiveMaxHeight <= 0) {
-    return { plans: [], bestPlan: null as unknown as PalletPlan, input };
+    return { plans: [], bestPlan: null, input };
   }
 
   const orientations = getOrientations(box);
   const plans: PalletPlan[] = [];
 
   orientations.forEach((ori, index) => {
-    // 找到该方向下的最优单层排列
     const { sections, totalBoxes: boxesPerLayer } = findBestLayerLayout(
-      pallet.length,
-      pallet.width,
-      ori.alongLength,
-      ori.alongWidth
+      pallet.length, pallet.width, ori.alongLength, ori.alongWidth
     );
-
     if (boxesPerLayer <= 0 || sections.length === 0) return;
 
     const layers = Math.min(
       Math.floor(effectiveMaxHeight / ori.stackHeight),
-      maxStackLayers && maxStackLayers > 0 ? maxStackLayers : Infinity
+      maxStackLayers > 0 ? maxStackLayers : Infinity
     );
-
     if (layers <= 0) return;
 
     const totalBoxes = boxesPerLayer * layers;
     const totalHeight = pallet.height + layers * ori.stackHeight;
-
-    // 计算实际覆盖尺寸
     const coverageLength = Math.max(...sections.map(s => s.countAlongLength * s.boxAlongLength));
     const coverageWidth = sections.reduce((sum, s) => sum + s.usedWidth, 0);
 
-    // 兼容字段：取第一个section的方向作为主方向
     const primarySection = sections[0];
     const countAlongLength = primarySection.countAlongLength;
     const countAlongWidth = sections.reduce((s, sec) => s + sec.countAlongWidth, 0);
 
-    // 空间利用率 = 箱体总体积 / (托盘面积 × 实际堆叠高度)
     const boxVolume = box.length * box.width * box.height;
     const usedVolume = totalBoxes * boxVolume;
     const palletVolume = pallet.length * pallet.width * (totalHeight - pallet.height);
     const utilization = palletVolume > 0 ? (usedVolume / palletVolume) * 100 : 0;
-
     const heightOk = totalHeight <= maxHeight;
 
-    // 方向描述：如果是混合排列，标注详细
-    const orientationDesc = sections.length > 1
-      ? `${ori.label}(混合排列)`
-      : ori.label;
+    const orientationDesc = sections.length > 1 ? `${ori.label}(混合排列)` : ori.label;
 
     plans.push({
       id: index + 1,
@@ -361,47 +291,13 @@ export function calculatePalletPlan(input: PalletizeInput): PalletizeResult {
     });
   });
 
-  // 按总箱数降序排列，箱数相同则按空间利用率降序
-  plans.sort((a, b) => {
-    if (b.totalBoxes !== a.totalBoxes) return b.totalBoxes - a.totalBoxes;
-    return b.utilization - a.utilization;
-  });
+  plans.sort((a, b) => b.totalBoxes !== a.totalBoxes ? b.totalBoxes - a.totalBoxes : b.utilization - a.utilization);
+  plans.forEach((plan, i) => { plan.id = i + 1; });
 
-  // 重新编号
-  plans.forEach((plan, i) => {
-    plan.id = i + 1;
-  });
-
-  const bestPlan = plans[0] || null;
-
-  return { plans, bestPlan, input };
+  return { plans, bestPlan: plans[0] || null, input };
 }
 
-/**
- * 格式化尺寸显示
- */
-export function formatDimensions(l: number, w: number, h: number): string {
-  return `${l} × ${w} × ${h} 毫米`;
-}
-
-/**
- * 格式化堆码方式
- */
-export function formatStacking(countL: number, countW: number, layers: number): string {
-  return `${countL} × ${countW} × ${layers}`;
-}
-
-/**
- * 毫米转分米(dm)，用于画图单位
- * 1 dm = 100 mm
- */
-export function mmToDm(mm: number): number {
-  return mm / 100;
-}
-
-/**
- * 计算车辆/集装箱装载方案
- */
+/** 计算车辆装载 */
 export function calculateTruckLoad(
   truck: TruckDimensions,
   palletLength: number,
@@ -410,32 +306,15 @@ export function calculateTruckLoad(
   boxesPerPallet: number,
   boxWeight: number
 ): TruckLoadResult {
-  // 托盘在车辆中的排列（两种方向取最优）
-  const option1 = {
-    palletsPerRow: Math.floor(truck.width / palletWidth),
-    rows: Math.floor(truck.length / palletLength),
-  };
-  const option2 = {
-    palletsPerRow: Math.floor(truck.width / palletLength),
-    rows: Math.floor(truck.length / palletWidth),
-  };
-
+  const option1 = { palletsPerRow: Math.floor(truck.width / palletWidth), rows: Math.floor(truck.length / palletLength) };
+  const option2 = { palletsPerRow: Math.floor(truck.width / palletLength), rows: Math.floor(truck.length / palletWidth) };
   const total1 = option1.palletsPerRow * option1.rows;
   const total2 = option2.palletsPerRow * option2.rows;
-
   const best = total1 >= total2 ? option1 : option2;
   const totalPallets = Math.max(total1, total2);
-
-  // 高度方向检查
   const heightOk = palletHeight <= truck.height;
-
   const totalBoxes = totalPallets * boxesPerPallet;
   const totalWeight = totalPallets * boxesPerPallet * boxWeight;
-
-  const lengthUsed = best.rows * palletLength;
-  const widthUsed = best.palletsPerRow * palletWidth;
-  const heightUsed = heightOk ? palletHeight : truck.height;
-
   const truckVolume = truck.length * truck.width * truck.height;
   const usedVolume = totalPallets * palletLength * palletWidth * (heightOk ? palletHeight : truck.height);
 
@@ -445,9 +324,21 @@ export function calculateTruckLoad(
     totalPallets,
     totalBoxes,
     totalWeight,
-    lengthUsed,
-    widthUsed,
-    heightUsed,
-    volumeUtilization: usedVolume / truckVolume,
+    lengthUsed: best.rows * palletLength,
+    widthUsed: best.palletsPerRow * palletWidth,
+    heightUsed: heightOk ? palletHeight : truck.height,
+    volumeUtilization: truckVolume > 0 ? usedVolume / truckVolume : 0,
   };
+}
+
+export function formatDimensions(l: number, w: number, h: number): string {
+  return `${l} × ${w} × ${h}`;
+}
+
+export function formatStacking(countL: number, countW: number, layers: number): string {
+  return `${countL} × ${countW} × ${layers}`;
+}
+
+export function mmToDm(mm: number): number {
+  return mm / 100;
 }
