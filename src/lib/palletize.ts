@@ -70,13 +70,38 @@ export interface PalletPlan {
   originalBox: BoxDimensions;
 }
 
+/** 车辆/集装箱尺寸（毫米） */
+export interface TruckDimensions {
+  name: string;
+  length: number;  // 内部长
+  width: number;   // 内部宽
+  height: number;  // 内部高
+}
+
 /** 算法输入参数 */
 export interface PalletizeInput {
   box: BoxDimensions;
+  boxWeight?: number;       // 单箱重量(kg)
+  boxColor?: string;        // 箱体颜色
   pallet: PalletDimensions;
+  palletMaxLoad?: number;   // 托盘最大承重(kg)
   maxHeight: number;        // 最大允许总高度（含托盘）
   maxStackLayers?: number;  // 最大堆码层数（0或undefined表示不限）
   productName?: string;     // 产品名称
+  truck?: TruckDimensions;  // 车辆/集装箱
+}
+
+/** 车辆装载结果 */
+export interface TruckLoadResult {
+  palletsPerRow: number;     // 每排托盘数
+  rows: number;              // 排数
+  totalPallets: number;      // 总托盘数
+  totalBoxes: number;        // 总箱数
+  totalWeight: number;       // 总重量(kg)
+  lengthUsed: number;        // 长度方向使用(mm)
+  widthUsed: number;         // 宽度方向使用(mm)
+  heightUsed: number;        // 高度方向使用(mm)
+  volumeUtilization: number; // 体积利用率
 }
 
 /** 算法输出结果 */
@@ -87,6 +112,8 @@ export interface PalletizeResult {
   bestPlan: PalletPlan;
   /** 输入参数回显 */
   input: PalletizeInput;
+  /** 车辆装载结果（可选） */
+  truckLoad?: TruckLoadResult;
 }
 
 /**
@@ -370,4 +397,57 @@ export function formatStacking(countL: number, countW: number, layers: number): 
  */
 export function mmToDm(mm: number): number {
   return mm / 100;
+}
+
+/**
+ * 计算车辆/集装箱装载方案
+ */
+export function calculateTruckLoad(
+  truck: TruckDimensions,
+  palletLength: number,
+  palletWidth: number,
+  palletHeight: number,
+  boxesPerPallet: number,
+  boxWeight: number
+): TruckLoadResult {
+  // 托盘在车辆中的排列（两种方向取最优）
+  const option1 = {
+    palletsPerRow: Math.floor(truck.width / palletWidth),
+    rows: Math.floor(truck.length / palletLength),
+  };
+  const option2 = {
+    palletsPerRow: Math.floor(truck.width / palletLength),
+    rows: Math.floor(truck.length / palletWidth),
+  };
+
+  const total1 = option1.palletsPerRow * option1.rows;
+  const total2 = option2.palletsPerRow * option2.rows;
+
+  const best = total1 >= total2 ? option1 : option2;
+  const totalPallets = Math.max(total1, total2);
+
+  // 高度方向检查
+  const heightOk = palletHeight <= truck.height;
+
+  const totalBoxes = totalPallets * boxesPerPallet;
+  const totalWeight = totalPallets * boxesPerPallet * boxWeight;
+
+  const lengthUsed = best.rows * palletLength;
+  const widthUsed = best.palletsPerRow * palletWidth;
+  const heightUsed = heightOk ? palletHeight : truck.height;
+
+  const truckVolume = truck.length * truck.width * truck.height;
+  const usedVolume = totalPallets * palletLength * palletWidth * (heightOk ? palletHeight : truck.height);
+
+  return {
+    palletsPerRow: best.palletsPerRow,
+    rows: best.rows,
+    totalPallets,
+    totalBoxes,
+    totalWeight,
+    lengthUsed,
+    widthUsed,
+    heightUsed,
+    volumeUtilization: usedVolume / truckVolume,
+  };
 }

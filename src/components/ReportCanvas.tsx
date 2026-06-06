@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import type { PalletPlan, BoxDimensions, PalletDimensions } from '@/lib/palletize';
+import type { PalletPlan, PalletizeInput, TruckLoadResult, PalletDimensions, BoxDimensions } from '@/lib/palletize';
 
 // ===== 颜色常量 =====
 const C = {
@@ -30,13 +30,14 @@ const C = {
 
 interface ReportCanvasProps {
   plan: PalletPlan;
-  box: BoxDimensions;
-  pallet: PalletDimensions;
-  maxHeight: number;
-  productName: string;
+  input: PalletizeInput;
+  layers: number;
+  flipLength: boolean;
+  flipWidth: boolean;
+  truckLoad?: TruckLoadResult;
 }
 
-export default function ReportCanvas({ plan, box, pallet, maxHeight, productName }: ReportCanvasProps) {
+export default function ReportCanvas({ plan, input, layers, flipLength, flipWidth, truckLoad }: ReportCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const draw = useCallback(() => {
@@ -59,12 +60,12 @@ export default function ReportCanvas({ plan, box, pallet, maxHeight, productName
     let curY = 15;
 
     // ========== 1. 标题栏 ==========
-    curY = drawTitleBar(ctx, 20, curY, W - 40, productName);
+    curY = drawTitleBar(ctx, 20, curY, W - 40, input.productName || '产品');
 
     curY += 12;
 
     // ========== 2. 参数表格 ==========
-    curY = drawParamTable(ctx, 20, curY, plan, box);
+    curY = drawParamTable(ctx, 20, curY, plan, input.box);
 
     curY += 14;
 
@@ -83,7 +84,7 @@ export default function ReportCanvas({ plan, box, pallet, maxHeight, productName
     const sideViewW = leftW * 0.38;
     const plusW = leftW - topViewW - sideViewW;
 
-    drawTopView(ctx, leftX, curY, topViewW, viewH, plan, pallet);
+    drawTopView(ctx, leftX, curY, topViewW, viewH, plan, input.pallet);
 
     // 加号连接
     ctx.fillStyle = C.brown;
@@ -91,14 +92,14 @@ export default function ReportCanvas({ plan, box, pallet, maxHeight, productName
     ctx.textAlign = 'center';
     ctx.fillText('+', leftX + topViewW + plusW / 2, curY + viewH / 2 + 10);
 
-    drawSideView(ctx, leftX + topViewW + plusW, curY, sideViewW, viewH, plan, pallet);
+    drawSideView(ctx, leftX + topViewW + plusW, curY, sideViewW, viewH, plan, input.pallet);
     curY += viewH + 14;
 
     // 托盘详情
     drawSectionTitle(ctx, leftX, curY, leftW, '托盘详情');
     curY += 44;
     const palletDetailH = 180;
-    drawPalletDetail(ctx, leftX, curY, leftW, palletDetailH, pallet);
+    drawPalletDetail(ctx, leftX, curY, leftW, palletDetailH, input.pallet);
     curY += palletDetailH + 14;
 
     // ========== 4. 右侧区域 ==========
@@ -111,15 +112,15 @@ export default function ReportCanvas({ plan, box, pallet, maxHeight, productName
     const stackedH = 680;
     const annoW = 180;
     const stackedW = rightW - annoW;
-    drawStackedView(ctx, rightX, 127, stackedW, stackedH, plan, pallet, productName);
-    drawHeightAnnotation(ctx, rightX + stackedW, 127, annoW, stackedH, plan, pallet, maxHeight);
+    drawStackedView(ctx, rightX, 127, stackedW, stackedH, plan, input.pallet, input.productName || '产品', layers, flipLength, flipWidth);
+    drawHeightAnnotation(ctx, rightX + stackedW, 127, annoW, stackedH, plan, input.pallet, input.maxHeight);
 
     // ========== 5. 底部信息汇总 ==========
     const summaryY = Math.max(curY, 830);
     const summaryH = 58;
-    drawSummary(ctx, 20, summaryY, W - 40, summaryH, plan, pallet, maxHeight);
+    drawSummary(ctx, 20, summaryY, W - 40, summaryH, plan, input.pallet, input.maxHeight);
 
-  }, [plan, box, pallet, maxHeight, productName]);
+  }, [plan, input, layers, flipLength, flipWidth, truckLoad]);
 
   useEffect(() => {
     draw();
@@ -476,7 +477,7 @@ function drawPalletDetail(ctx: CanvasRenderingContext2D, x: number, y: number, w
 }
 
 /** 绘制成品堆叠效果图 */
-function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions, productName: string) {
+function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions, productName: string, layersCount: number, flipLen: boolean, flipWid: boolean) {
   const isoAngle = Math.PI / 6;
   const cosA = Math.cos(isoAngle);
   const sinA = Math.sin(isoAngle);
@@ -484,8 +485,8 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   const palletL = pallet.length;
   const palletW = pallet.width;
   const palletH = pallet.height;
-  const layers = plan.layers;
-  const totalBoxH = plan.boxStackHeight * layers;
+  const layerCount = layersCount;
+  const totalBoxH = plan.boxStackHeight * layerCount;
   const totalH = palletH + totalBoxH;
 
   // 缩放
@@ -535,9 +536,9 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
   // === 箱体层 ===
   const sections = plan.sections;
-  for (let layer = 0; layer < layers; layer++) {
+  for (let layer = 0; layer < layerCount; layer++) {
     const layerZ = ph + layer * sBH;
-    const t = layer / Math.max(layers - 1, 1); // 0~1
+    const t = layer / Math.max(layerCount - 1, 1); // 0~1
     // 层级颜色渐变：底层深，上层浅
     const boxR = Math.round(196 + t * 20);
     const boxG = Math.round(150 + t * 18);
