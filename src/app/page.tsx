@@ -7,9 +7,9 @@ import { InputForm } from "@/components/InputForm";
 import { LayoutView2D } from "@/components/LayoutView2D";
 import { PalletView3D } from "@/components/PalletView3D";
 import { Summary } from "@/components/Summary";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Package, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Package, RotateCw, RefreshCw } from "lucide-react";
 
 const DEFAULT_INPUT: PalletizeInput = {
   productName: "",
@@ -23,12 +23,29 @@ export default function HomePage() {
   const [input, setInput] = useState<PalletizeInput>(DEFAULT_INPUT);
   const [result, setResult] = useState<PalletizeResult | null>(null);
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
+  // 追踪上次计算时的输入，用于判断参数是否已变更
+  const [lastCalcInput, setLastCalcInput] = useState<PalletizeInput | null>(null);
 
   const handleCalculate = useCallback(() => {
     const res = calculatePalletPlan(input);
     setResult(res);
     setSelectedPlanIndex(0);
+    setLastCalcInput(input);
   }, [input]);
+
+  // 判断参数是否已变更（需要重新计算）
+  const inputChanged =
+    result !== null &&
+    lastCalcInput !== null &&
+    (lastCalcInput.box.length !== input.box.length ||
+      lastCalcInput.box.width !== input.box.width ||
+      lastCalcInput.box.height !== input.box.height ||
+      lastCalcInput.pallet.length !== input.pallet.length ||
+      lastCalcInput.pallet.width !== input.pallet.width ||
+      lastCalcInput.pallet.height !== input.pallet.height ||
+      lastCalcInput.maxHeight !== input.maxHeight ||
+      lastCalcInput.maxStackLayers !== input.maxStackLayers ||
+      lastCalcInput.productName !== input.productName);
 
   const selectedPlan: PalletPlan | null = result?.plans?.[selectedPlanIndex] ?? result?.bestPlan ?? null;
 
@@ -69,6 +86,40 @@ export default function HomePage() {
             </div>
           ) : (
             <>
+              {/* 参数变更提示 + 重新计算按钮 */}
+              {inputChanged && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-700 text-sm">
+                    <RefreshCw className="h-4 w-4" />
+                    <span>参数已变更，当前结果可能不准确</span>
+                  </div>
+                  <Button
+                    onClick={handleCalculate}
+                    size="sm"
+                    className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8 px-4"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    重新计算
+                  </Button>
+                </div>
+              )}
+
+              {/* 顶部操作栏：重新生成 */}
+              <div className="bg-white border border-slate-200 rounded-lg px-4 py-2.5 flex items-center justify-between">
+                <div className="text-sm text-slate-500">
+                  当前方案：方案{selectedPlanIndex + 1} / 共 {result.plans.length} 种可行方案
+                </div>
+                <Button
+                  onClick={handleCalculate}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  重新生成方案
+                </Button>
+              </div>
+
               {/* 方案选择 */}
               {result.plans.length > 1 && (
                 <div className="bg-white border border-slate-200 rounded-lg p-4">
