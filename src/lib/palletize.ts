@@ -90,31 +90,31 @@ export interface TruckLoadResult {
 // ==================== 托盘预设 ====================
 
 export const PALLET_PRESETS: { name: string; length: number; width: number; height: number }[] = [
-  { name: 'EUR/EUR 1/ISO1 1200×800mm', length: 1200, width: 800, height: 144 },
-  { name: 'EUR 2 (UK Pallet) 1200×1000mm', length: 1200, width: 1000, height: 144 },
-  { name: 'EUR 3/FIN/IPL/ISO2 1000×1200mm', length: 1000, width: 1200, height: 144 },
-  { name: 'UPL Pallet 1200×1100mm', length: 1200, width: 1100, height: 144 },
-  { name: 'HPL (EUR 6/ISO0) 600×800mm', length: 600, width: 800, height: 144 },
-  { name: 'QPL (Quarter) 600×400mm', length: 600, width: 400, height: 144 },
-  { name: 'PXL Pallet 1200×1200mm', length: 1200, width: 1200, height: 144 },
-  { name: 'American Standard 1219×1016mm', length: 1219, width: 1016, height: 152 },
-  { name: 'American 42"×42" 1067×1067mm', length: 1067, width: 1067, height: 152 },
-  { name: 'American 48"×48" 1219×1219mm', length: 1219, width: 1219, height: 152 },
-  { name: 'Australian Standard 1165×1165mm', length: 1165, width: 1165, height: 150 },
-  { name: 'Asian Standard 1100×1100mm', length: 1100, width: 1100, height: 150 },
+  { name: '欧标1号/ISO1 1200×800mm', length: 1200, width: 800, height: 144 },
+  { name: '欧标2号/英标 1200×1000mm', length: 1200, width: 1000, height: 144 },
+  { name: '欧标3号/芬标/ISO2 1000×1200mm', length: 1000, width: 1200, height: 144 },
+  { name: 'UPL托盘 1200×1100mm', length: 1200, width: 1100, height: 144 },
+  { name: 'HPL/欧标6号/ISO0 600×800mm', length: 600, width: 800, height: 144 },
+  { name: 'QPL/四分之一托盘 600×400mm', length: 600, width: 400, height: 144 },
+  { name: 'PXL托盘 1200×1200mm', length: 1200, width: 1200, height: 144 },
+  { name: '美标托盘 1219×1016mm', length: 1219, width: 1016, height: 152 },
+  { name: '美标42寸 1067×1067mm', length: 1067, width: 1067, height: 152 },
+  { name: '美标48寸 1219×1219mm', length: 1219, width: 1219, height: 152 },
+  { name: '澳标托盘 1165×1165mm', length: 1165, width: 1165, height: 150 },
+  { name: '亚标托盘 1100×1100mm', length: 1100, width: 1100, height: 150 },
 ];
 
 // ==================== 车辆预设 ====================
 
 export const TRUCK_PRESETS: TruckDimensions[] = [
-  { name: 'Euro Truck Standard', length: 13600, width: 2480, height: 2700 },
-  { name: 'Euro Truck Mega', length: 13600, width: 2480, height: 3000 },
-  { name: 'US 53ft Trailer', length: 16154, width: 2591, height: 2743 },
-  { name: 'US 48ft Trailer', length: 14630, width: 2591, height: 2743 },
-  { name: '20ft Container', length: 5898, width: 2352, height: 2393 },
-  { name: '40ft Container', length: 12032, width: 2352, height: 2393 },
-  { name: '40ft HC Container', length: 12032, width: 2352, height: 2698 },
-  { name: '45ft HC Container', length: 13556, width: 2352, height: 2698 },
+  { name: '欧标卡车 标准', length: 13600, width: 2480, height: 2700 },
+  { name: '欧标卡车 加高型', length: 13600, width: 2480, height: 3000 },
+  { name: '美标53英尺挂车', length: 16154, width: 2591, height: 2743 },
+  { name: '美标48英尺挂车', length: 14630, width: 2591, height: 2743 },
+  { name: '20英尺集装箱', length: 5898, width: 2352, height: 2393 },
+  { name: '40英尺集装箱', length: 12032, width: 2352, height: 2393 },
+  { name: '40英尺高柜集装箱', length: 12032, width: 2352, height: 2698 },
+  { name: '45英尺高柜集装箱', length: 13556, width: 2352, height: 2698 },
 ];
 
 // ==================== 核心算法 ====================

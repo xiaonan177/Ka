@@ -49,7 +49,7 @@ export function LayerEditor({
     ctx.fillStyle = '#1E293B';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Edit Layer — Top View', displayW / 2, 16);
+    ctx.fillText('编辑层 — 俯视图', displayW / 2, 16);
 
     // 托盘
     ctx.fillStyle = '#E8E8E8';
@@ -136,9 +136,9 @@ export function LayerEditor({
       {/* 排列策略选择 */}
       <div className="px-3 py-2 border-b border-slate-200 bg-slate-50">
         <div className="flex items-center gap-2 text-xs">
-          <span className="font-bold text-slate-700">📐 Pattern:</span>
+          <span className="font-bold text-slate-700">📐 排列方式:</span>
           <span className="text-slate-600">
-            {plan ? `${plan.countAlongLength} × ${plan.countAlongWidth} = ${plan.boxesPerLayer} boxes/layer` : '—'}
+            {plan ? `${plan.countAlongLength} × ${plan.countAlongWidth} = ${plan.boxesPerLayer} 箱/层` : '—'}
           </span>
           <span className="text-slate-400">|</span>
           <span className="text-slate-600">{plan?.orientation || '—'}</span>
@@ -154,20 +154,20 @@ export function LayerEditor({
       <div className="px-3 py-2 border-t border-slate-200 bg-slate-50 space-y-2">
         {/* 层翻转 */}
         <div className="flex items-center gap-3 text-xs">
-          <span className="font-bold text-slate-700">📚 Layer Stacking</span>
+          <span className="font-bold text-slate-700">📚 层叠方式</span>
           <label className="flex items-center gap-1 cursor-pointer">
             <input type="checkbox" checked={flipLength} onChange={e => onFlipLengthChange(e.target.checked)} className="accent-blue-500" />
-            <span>↔ Flip Length</span>
+            <span>↔ 长度翻转</span>
           </label>
           <label className="flex items-center gap-1 cursor-pointer">
             <input type="checkbox" checked={flipWidth} onChange={e => onFlipWidthChange(e.target.checked)} className="accent-blue-500" />
-            <span>↕ Flip Width</span>
+            <span>↕ 宽度翻转</span>
           </label>
         </div>
 
         {/* 层数控制 */}
         <div className="flex items-center gap-3 text-xs">
-          <span className="font-bold text-slate-700">Layers:</span>
+          <span className="font-bold text-slate-700">层数:</span>
           <input
             type="range" min={1} max={20} value={layers}
             onChange={e => onLayersChange(Number(e.target.value))}

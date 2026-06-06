@@ -276,7 +276,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       <div className="w-[380px] flex-shrink-0 bg-white border-l border-slate-200 flex items-center justify-center">
         <div className="text-center text-slate-400 p-6">
           <p className="text-4xl mb-3">📦</p>
-          <p className="text-sm font-medium">Press &quot;PALCALC it!&quot; to generate your solution.</p>
+          <p className="text-sm font-medium">点击「开始计算」生成方案</p>
         </div>
       </div>
     );
@@ -292,19 +292,19 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       <div className="p-3 border-b border-slate-200 bg-slate-50">
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-100">
-            <div className="text-[10px] text-slate-500">Boxes / Pallet</div>
+            <div className="text-[10px] text-slate-500">每托箱数</div>
             <div className="text-lg font-bold text-blue-600">{totalBoxes}</div>
           </div>
           <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-100">
-            <div className="text-[10px] text-slate-500">Total Height</div>
+            <div className="text-[10px] text-slate-500">总高度</div>
             <div className={`text-lg font-bold ${heightOk ? 'text-emerald-600' : 'text-amber-600'}`}>{totalH.toLocaleString()} mm</div>
           </div>
           <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-100">
-            <div className="text-[10px] text-slate-500">Boxes / Layer</div>
+            <div className="text-[10px] text-slate-500">每层箱数</div>
             <div className="text-lg font-bold text-slate-700">{plan.boxesPerLayer}</div>
           </div>
           <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-100">
-            <div className="text-[10px] text-slate-500">Space Utilization</div>
+            <div className="text-[10px] text-slate-500">空间利用率</div>
             <div className="text-lg font-bold text-slate-700">{plan.utilization}%</div>
           </div>
         </div>
@@ -316,14 +316,14 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
           onClick={() => setViewMode('pallet')}
           className={`flex-1 py-2 text-xs font-medium ${viewMode === 'pallet' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-500 hover:bg-slate-50'}`}
         >
-          📦 Pallet Preview
+          📦 托盘预览
         </button>
         {input.truck && (
           <button
             onClick={() => setViewMode('truck')}
             className={`flex-1 py-2 text-xs font-medium ${viewMode === 'truck' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            🚛 Truck View
+            🚛 车辆视图
           </button>
         )}
       </div>
@@ -336,12 +336,12 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       {/* 车辆装载信息 */}
       {truckLoad && viewMode === 'truck' && (
         <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-1">
-          <h3 className="text-xs font-bold text-slate-700">Truck Loading</h3>
+          <h3 className="text-xs font-bold text-slate-700">车辆装载</h3>
           <div className="grid grid-cols-2 gap-x-3 text-xs text-slate-600">
-            <span>Pallets: <strong>{truckLoad.totalPallets}</strong></span>
-            <span>Total boxes: <strong>{truckLoad.totalBoxes.toLocaleString()}</strong></span>
-            <span>Weight: <strong>{truckLoad.totalWeight.toLocaleString()} kg</strong></span>
-            <span>Volume: <strong>{(truckLoad.volumeUtilization * 100).toFixed(1)}%</strong></span>
+            <span>托盘数: <strong>{truckLoad.totalPallets}</strong></span>
+            <span>总箱数: <strong>{truckLoad.totalBoxes.toLocaleString()}</strong></span>
+            <span>重量: <strong>{truckLoad.totalWeight.toLocaleString()} kg</strong></span>
+            <span>体积率: <strong>{(truckLoad.volumeUtilization * 100).toFixed(1)}%</strong></span>
           </div>
         </div>
       )}
@@ -350,9 +350,9 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       <div className="p-3 border-t border-slate-200">
         <div className="flex items-center gap-2 text-xs">
           {heightOk ? (
-            <><span className="text-emerald-500">✓</span><span className="text-emerald-700">Height {totalH.toLocaleString()}mm ≤ {input.maxHeight.toLocaleString()}mm limit</span></>
+            <><span className="text-emerald-500">✓</span><span className="text-emerald-700">高度 {totalH.toLocaleString()}mm ≤ {input.maxHeight.toLocaleString()}mm 限制</span></>
           ) : (
-            <><span className="text-amber-500">⚠</span><span className="text-amber-700">Height {totalH.toLocaleString()}mm &gt; {input.maxHeight.toLocaleString()}mm limit</span></>
+            <><span className="text-amber-500">⚠</span><span className="text-amber-700">高度 {totalH.toLocaleString()}mm &gt; {input.maxHeight.toLocaleString()}mm 限制</span></>
           )}
         </div>
       </div>
@@ -360,7 +360,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       {/* 下载按钮 */}
       <div className="p-3 border-t border-slate-200">
         <button onClick={onDownloadReport} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg text-xs transition-colors">
-          📥 Download Report Image
+          📥 下载报告图片
         </button>
       </div>
     </div>

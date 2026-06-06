@@ -17,11 +17,11 @@ const DEFAULT_INPUT: PalletizeInput = {
   useCase: false,
   caseBox: { length: 0, width: 0, height: 0 },
   caseCount: 0,
-  palletType: 'EUR 2 (UK Pallet) 1200×1000mm',
+  palletType: '欧标2号/英标 1200×1000mm',
   pallet: { length: 1200, width: 1000, height: 160 },
   maxHeight: 1500,
   maxStackLayers: 0,
-  truckType: 'No Truck',
+  truckType: '不使用车辆',
   truck: undefined,
 };
 
@@ -70,7 +70,7 @@ export default function Home() {
         <h1 className="text-white font-bold text-base tracking-wide">
           PAL<span className="text-blue-400">*</span>CALC
         </h1>
-        <span className="text-slate-400 text-xs ml-3">Free Online Pallet Loading Calculator</span>
+        <span className="text-slate-400 text-xs ml-3">免费在线托盘装载计算器</span>
       </header>
 
       {/* 主内容区三栏 */}
@@ -114,7 +114,7 @@ export default function Home() {
                 flipWidth={flipWidth}
               />
             </div>
-            <button onClick={() => setShowReport(false)} className="mt-3 px-4 py-2 bg-slate-200 rounded text-sm">Close</button>
+            <button onClick={() => setShowReport(false)} className="mt-3 px-4 py-2 bg-slate-200 rounded text-sm">关闭</button>
           </div>
         </div>
       )}
