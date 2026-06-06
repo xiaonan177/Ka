@@ -3,38 +3,40 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { PalletPlan, BoxDimensions, PalletDimensions } from '@/lib/palletize';
 
-interface ReportCanvasProps {
-  plan: PalletPlan;
-  productName: string;
-  box: BoxDimensions;
-  pallet: PalletDimensions;
-  maxHeight: number;
-}
-
-// 颜色常量
+// ===== 颜色常量 =====
 const C = {
+  white: '#FFFFFF',
+  black: '#333333',
   brown: '#5C3924',
-  brownLight: '#8B6243',
+  brownDark: '#3D2516',
   boxColor: '#D4A77A',
-  boxDark: '#C49060',
-  boxLight: '#E4BD9A',
-  palletColor: '#2A2A2A',
-  palletFace: '#3A3A3A',
-  palletTop: '#444444',
+  boxLight: '#E2BE96',
+  boxDark: '#B8895E',
+  boxStroke: '#A07040',
+  palletColor: '#2D2D2D',
+  palletTop: '#3A3A3A',
+  palletFace: '#333333',
   blue: '#2385BB',
   blueLine: '#3B82F6',
   red: '#E03C31',
   green: '#39A852',
-  black: '#333333',
-  gray: '#666666',
-  grayLight: '#CCCCCC',
-  grayBg: '#F0F0F0',
   cream: '#F9F2E9',
   creamBorder: '#D4A77A',
-  white: '#FFFFFF',
+  grayBg: '#F0F0F0',
+  grayLight: '#CCCCCC',
+  grayMid: '#999999',
+  sectionBg: '#FAFAFA',
 };
 
-export default function ReportCanvas({ plan, productName, box, pallet, maxHeight }: ReportCanvasProps) {
+interface ReportCanvasProps {
+  plan: PalletPlan;
+  box: BoxDimensions;
+  pallet: PalletDimensions;
+  maxHeight: number;
+  productName: string;
+}
+
+export default function ReportCanvas({ plan, box, pallet, maxHeight, productName }: ReportCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const draw = useCallback(() => {
@@ -43,109 +45,81 @@ export default function ReportCanvas({ plan, productName, box, pallet, maxHeight
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 画布尺寸 - A4横向比例，高清2倍
-    const W = 2400;
-    const H = 1700;
-    canvas.width = W;
-    canvas.height = H;
+    const dpr = 2;
+    const W = 1280;
+    const H = 900;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
 
+    // 白色背景
     ctx.fillStyle = C.white;
     ctx.fillRect(0, 0, W, H);
 
-    let y = 0;
+    let curY = 15;
 
-    // ======== 1. 标题栏 ========
-    y = 20;
-    roundRect(ctx, 20, y, W - 40, 60, 8, C.brown);
-    ctx.fillStyle = C.white;
-    ctx.font = 'bold 26px "Microsoft YaHei", "PingFang SC", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`打托排版方案 - 产品: ${productName}`, W / 2, y + 40);
-    ctx.textAlign = 'left';
-    y += 90;
+    // ========== 1. 标题栏 ==========
+    curY = drawTitleBar(ctx, 20, curY, W - 40, productName);
 
-    // ======== 2. 参数表格 ========
-    y = drawParamTable(ctx, plan, box, y);
-    y += 25;
+    curY += 12;
 
-    // ======== 3. 左侧：排列方式 + 托盘详情 ========
-    const leftX = 30;
-    const leftW = 1100;
+    // ========== 2. 参数表格 ==========
+    curY = drawParamTable(ctx, 20, curY, plan, box);
 
-    // 3a. 单层箱体排列方式
-    drawSectionTitle(ctx, leftX, y, leftW, '单层箱体排列方式');
-    y += 45;
+    curY += 14;
 
-    const topViewW = 500;
-    const topViewH = 320;
-    const sideViewW = 300;
-    const sideViewH = 280;
+    // ========== 3. 左侧区域 ==========
+    const leftW = 620;
+    const rightW = W - 40 - leftW - 16;
+    const leftX = 20;
 
-    // 俯视图
-    const tvX = leftX + 20;
-    const tvY = y;
-    ctx.fillStyle = C.black;
-    ctx.font = '18px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`排列方式: ${plan.countAlongLength} × ${plan.countAlongWidth} (俯视图)`, tvX + topViewW / 2, tvY + 20);
-    drawTopView(ctx, tvX, tvY + 30, topViewW, topViewH - 30, plan, pallet);
+    // 单层排列方式标题
+    drawSectionTitle(ctx, leftX, curY, leftW, '单层箱体排列方式');
+    curY += 44;
 
-    // 加号
-    const plusX = tvX + topViewW + 25;
-    const plusY = tvY + topViewH / 2;
+    // 俯视图和侧视图
+    const viewH = 200;
+    const topViewW = leftW * 0.55;
+    const sideViewW = leftW * 0.38;
+    const plusW = leftW - topViewW - sideViewW;
+
+    drawTopView(ctx, leftX, curY, topViewW, viewH, plan, pallet);
+
+    // 加号连接
     ctx.fillStyle = C.brown;
-    ctx.font = 'bold 40px sans-serif';
+    ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('+', plusX, plusY + 12);
+    ctx.fillText('+', leftX + topViewW + plusW / 2, curY + viewH / 2 + 10);
 
-    // 侧视图
-    const svX = plusX + 50;
-    const svY = tvY;
-    ctx.fillStyle = C.black;
-    ctx.font = '18px "Microsoft YaHei", sans-serif';
-    ctx.fillText(`排列方式: ${plan.countAlongLength}箱一组 (侧视图)`, svX + sideViewW / 2, svY + 20);
-    drawSideView(ctx, svX, svY + 30, sideViewW, sideViewH - 30, plan, pallet);
+    drawSideView(ctx, leftX + topViewW + plusW, curY, sideViewW, viewH, plan, pallet);
+    curY += viewH + 14;
 
-    y += topViewH + 30;
+    // 托盘详情
+    drawSectionTitle(ctx, leftX, curY, leftW, '托盘详情');
+    curY += 44;
+    const palletDetailH = 180;
+    drawPalletDetail(ctx, leftX, curY, leftW, palletDetailH, pallet);
+    curY += palletDetailH + 14;
 
-    // 3b. 托盘详情
-    drawSectionTitle(ctx, leftX, y, leftW, '托盘详情');
-    y += 45;
+    // ========== 4. 右侧区域 ==========
+    const rightX = leftX + leftW + 16;
 
-    const palletDrawW = 400;
-    const palletDrawH = 260;
-    drawPalletDetail(ctx, leftX + 20, y, palletDrawW, palletDrawH, pallet);
+    // 成品堆叠效果图标题
+    drawSectionTitle(ctx, rightX, 83, rightW, '成品托盘堆叠效果图');
 
-    // 托盘文字
-    const ptTextX = leftX + palletDrawW + 50;
-    ctx.fillStyle = C.black;
-    ctx.font = '20px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(`托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`, ptTextX, y + 80);
-    ctx.fillText(`托盘材质: 塑料`, ptTextX, y + 115);
+    // 3D堆叠图 + 右侧标注
+    const stackedH = 680;
+    const annoW = 180;
+    const stackedW = rightW - annoW;
+    drawStackedView(ctx, rightX, 127, stackedW, stackedH, plan, pallet, productName);
+    drawHeightAnnotation(ctx, rightX + stackedW, 127, annoW, stackedH, plan, pallet, maxHeight);
 
-    y += palletDrawH + 25;
+    // ========== 5. 底部信息汇总 ==========
+    const summaryY = Math.max(curY, 830);
+    const summaryH = 58;
+    drawSummary(ctx, 20, summaryY, W - 40, summaryH, plan, pallet, maxHeight);
 
-    // ======== 4. 右侧：成品堆叠效果图 ========
-    const rightX = 1180;
-    const rightW = W - rightX - 30;
-    let ry = 110;
-
-    drawSectionTitle(ctx, rightX, ry, rightW, '成品托盘堆叠效果图');
-    ry += 45;
-
-    const stackDrawW = rightW - 280;
-    const stackDrawH = 850;
-    drawStackedView(ctx, rightX + 10, ry, stackDrawW, stackDrawH, plan, pallet, productName);
-
-    // 右侧高度标注
-    const annotX = rightX + stackDrawW + 30;
-    drawHeightAnnotation(ctx, annotX, ry, stackDrawH, plan, pallet, maxHeight);
-
-    // ======== 5. 底部：信息汇总 ========
-    const summaryY = H - 170;
-    drawSummary(ctx, 30, summaryY, W - 60, 140, plan, pallet, maxHeight);
-  }, [plan, productName, box, pallet, maxHeight]);
+  }, [plan, box, pallet, maxHeight, productName]);
 
   useEffect(() => {
     draw();
@@ -178,30 +152,38 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 function drawSectionTitle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, text: string) {
-  roundRect(ctx, x, y, w, 36, 6, C.brown);
+  roundRect(ctx, x, y, w, 32, 5, C.brown);
   ctx.fillStyle = C.white;
-  ctx.font = 'bold 20px "Microsoft YaHei", sans-serif';
+  ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText(text, x + 15, y + 26);
+  ctx.fillText(text, x + 12, y + 23);
 }
 
-function drawParamTable(ctx: CanvasRenderingContext2D, plan: PalletPlan, box: BoxDimensions, startY: number): number {
+function drawTitleBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, productName: string): number {
+  const h = 42;
+  roundRect(ctx, x, y, w, h, 6, C.brown);
+  ctx.fillStyle = C.white;
+  ctx.font = 'bold 18px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`智能堆码 - 产品: ${productName || '产品'}`, x + w / 2, y + 28);
+  return y + h;
+}
+
+function drawParamTable(ctx: CanvasRenderingContext2D, x: number, y: number, plan: PalletPlan, box: BoxDimensions): number {
   const cols = [
-    { header: '箱体类型', value: '产品箱', w: 140 },
-    { header: '箱体尺寸(长×宽×高 毫米)', value: `W${box.width} × L${box.length} × H${box.height}`, w: 380 },
-    { header: '堆码方式(长×宽×高)', value: `${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`, w: 260 },
-    { header: '每层箱数(箱)', value: String(plan.boxesPerLayer), w: 180 },
-    { header: '层数(层)', value: String(plan.layers), w: 140 },
-    { header: '每托箱数(箱)', value: String(plan.totalBoxes), w: 180 },
+    { header: '箱体类型', value: '产品箱', w: 100 },
+    { header: '箱体尺寸(长×宽×高 毫米)', value: `W${box.width} × L${box.length} × H${box.height}`, w: 300 },
+    { header: '堆码方式(长×宽×高)', value: `${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`, w: 210 },
+    { header: '每层箱数(箱)', value: String(plan.boxesPerLayer), w: 140 },
+    { header: '层数(层)', value: String(plan.layers), w: 100 },
+    { header: '每托箱数(箱)', value: String(plan.totalBoxes), w: 140 },
   ];
 
   const tableW = cols.reduce((s, c) => s + c.w, 0);
-  const x0 = 30;
-  const rowH = 38;
-  let y = startY;
+  const rowH = 34;
+  let cx = x;
 
   // 表头
-  let cx = x0;
   ctx.fillStyle = C.grayBg;
   ctx.fillRect(cx, y, tableW, rowH);
   ctx.strokeStyle = C.grayLight;
@@ -211,60 +193,73 @@ function drawParamTable(ctx: CanvasRenderingContext2D, plan: PalletPlan, box: Bo
   for (const col of cols) {
     ctx.strokeStyle = C.grayLight;
     ctx.strokeRect(cx, y, col.w, rowH);
-    ctx.fillStyle = C.black;
-    ctx.font = '16px "Microsoft YaHei", sans-serif';
+    ctx.fillStyle = '#555555';
+    ctx.font = '13px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(col.header, cx + col.w / 2, y + 26);
+    ctx.fillText(col.header, cx + col.w / 2, y + 22);
     cx += col.w;
   }
-  y += rowH;
 
   // 数据行
-  cx = x0;
+  cx = x;
   ctx.fillStyle = C.white;
-  ctx.fillRect(cx, y, tableW, rowH);
+  ctx.fillRect(cx, y + rowH, tableW, rowH);
   ctx.strokeStyle = C.grayLight;
-  ctx.strokeRect(cx, y, tableW, rowH);
+  ctx.strokeRect(cx, y + rowH, tableW, rowH);
 
   for (const col of cols) {
     ctx.strokeStyle = C.grayLight;
-    ctx.strokeRect(cx, y, col.w, rowH);
+    ctx.strokeRect(cx, y + rowH, col.w, rowH);
     ctx.fillStyle = C.black;
-    ctx.font = 'bold 18px "Microsoft YaHei", sans-serif';
+    ctx.font = 'bold 15px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(col.value, cx + col.w / 2, y + 26);
+    ctx.fillText(col.value, cx + col.w / 2, y + rowH + 23);
     cx += col.w;
   }
-  y += rowH;
 
-  return y;
+  return y + rowH * 2;
 }
 
-/** 绘制俯视图 - 箱体在托盘上的平面排列 */
+/** 绘制俯视图 */
 function drawTopView(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions) {
+  // 标题
+  ctx.fillStyle = C.black;
+  ctx.font = '13px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`排列方式: ${plan.countAlongLength} × ${plan.countAlongWidth} (俯视图)`, x + w / 2, y + 16);
+
+  const drawY = y + 24;
+  const drawH = h - 44;
+
   const palletL = pallet.length;
   const palletW = pallet.width;
-
-  // 缩放：让托盘适配绘图区
-  const padding = 50;
+  const padding = 35;
   const scaleX = (w - padding * 2) / palletL;
-  const scaleY = (h - padding * 2) / palletW;
+  const scaleY = (drawH - padding * 2) / palletW;
   const scale = Math.min(scaleX, scaleY);
 
   const drawPL = palletL * scale;
   const drawPW = palletW * scale;
-
-  // 托盘居中
   const ox = x + (w - drawPL) / 2;
-  const oy = y + (h - drawPW) / 2;
+  const oy = drawY + (drawH - drawPW) / 2;
 
-  // 绘制托盘底
-  roundRect(ctx, ox, oy, drawPL, drawPW, 4, C.palletTop);
+  // 托盘底
+  roundRect(ctx, ox, oy, drawPL, drawPW, 3, C.palletTop);
+  // 网格
+  ctx.strokeStyle = '#4A4A4A';
+  ctx.lineWidth = 0.3;
+  const gs = drawPL / 12;
+  for (let i = gs; i < drawPL; i += gs) {
+    ctx.beginPath(); ctx.moveTo(ox + i, oy); ctx.lineTo(ox + i, oy + drawPW); ctx.stroke();
+  }
+  const gsw = drawPW / 10;
+  for (let j = gsw; j < drawPW; j += gsw) {
+    ctx.beginPath(); ctx.moveTo(ox, oy + j); ctx.lineTo(ox + drawPL, oy + j); ctx.stroke();
+  }
 
-  // 绘制箱体
+  // 箱体
   const sections = plan.sections;
   let currentY = oy;
-
   for (const section of sections) {
     const secDrawW = section.usedWidth * scale;
     const boxDL = section.boxAlongLength * scale;
@@ -278,56 +273,82 @@ function drawTopView(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
         const bw = boxDL - gap * 2;
         const bh = boxDW - gap * 2;
 
-        // 纸箱颜色
-        roundRect(ctx, bx, by, bw, bh, 2, C.boxColor);
-        ctx.strokeStyle = C.boxDark;
-        ctx.lineWidth = 1;
+        // 瓦楞纸箱渐变
+        const grad = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+        grad.addColorStop(0, '#D9AD7C');
+        grad.addColorStop(0.5, '#C89B6A');
+        grad.addColorStop(1, '#D4A77A');
+        roundRect(ctx, bx, by, bw, bh, 2, '#D4A77A');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = C.boxStroke;
+        ctx.lineWidth = 0.8;
         ctx.strokeRect(bx, by, bw, bh);
 
-        // 箱体上小标注
-        if (bw > 20 && bh > 15) {
-          ctx.fillStyle = C.brown;
-          ctx.font = `${Math.min(10, bw / 5)}px sans-serif`;
+        // 瓦楞纹理
+        if (bw > 15 && bh > 12) {
+          ctx.strokeStyle = 'rgba(160,112,64,0.2)';
+          ctx.lineWidth = 0.3;
+          for (let ly = by + 3; ly < by + bh - 2; ly += 3) {
+            ctx.beginPath(); ctx.moveTo(bx + 2, ly); ctx.lineTo(bx + bw - 2, ly); ctx.stroke();
+          }
+        }
+
+        // 箱体标注
+        if (bw > 25 && bh > 18) {
+          ctx.fillStyle = C.brownDark;
+          ctx.font = `${Math.min(9, bw / 6)}px "Microsoft YaHei", sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText(plan.originalBox ? '产品' : '', bx + bw / 2, by + bh / 2 + 3);
+          ctx.fillText('产品', bx + bw / 2, by + bh / 2 + 3);
         }
       }
     }
     currentY += secDrawW;
   }
 
-  // 尺寸标注 - 横向（长度方向）
-  const annotY = oy + drawPW + 25;
-  drawDimensionLine(ctx, ox, annotY, ox + drawPL, annotY, `${plan.coverageLength} 毫米`, 'bottom');
+  // 托盘边框
+  ctx.strokeStyle = '#1A1A1A';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(ox, oy, drawPL, drawPW);
 
-  // 尺寸标注 - 纵向（宽度方向）
-  const annotX = ox - 25;
-  drawDimensionLine(ctx, annotX, oy, annotX, oy + drawPW, `${plan.coverageWidth} 毫米`, 'left');
+  // 尺寸标注
+  const annotY = oy + drawPW + 18;
+  drawDimLine(ctx, ox, annotY, ox + drawPL, annotY, `${plan.coverageLength} 毫米`, 'bottom');
+  const annotX = ox - 18;
+  drawDimLine(ctx, annotX, oy, annotX, oy + drawPW, `${plan.coverageWidth} 毫米`, 'left');
 }
 
 /** 绘制侧视图 */
 function drawSideView(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions) {
-  const boxH = plan.boxStackHeight;
-  const boxW = plan.boxOnPalletLength;
   const count = plan.countAlongLength;
+  const boxW = plan.boxOnPalletLength;
+  const boxH = plan.boxStackHeight;
 
-  const padding = 40;
+  ctx.fillStyle = C.black;
+  ctx.font = '13px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`排列方式: ${count}箱一组 (侧视图)`, x + w / 2, y + 16);
+
+  const drawY = y + 24;
+  const drawH = h - 44;
+  const padding = 30;
   const totalBoxW = boxW * count;
-  const maxDim = Math.max(totalBoxW, boxH);
-
   const scaleX = (w - padding * 2) / totalBoxW;
-  const scaleY = (h - padding * 2) / (boxH + 40);
+  const scaleY = (drawH - padding * 2) / (boxH + 30);
   const scale = Math.min(scaleX, scaleY);
 
   const drawBW = boxW * scale;
   const drawBH = boxH * scale;
-  const palletDrawH = 20;
+  const palletDrawH = 16;
 
   const ox = x + (w - drawBW * count) / 2;
-  const oy = y + h - padding - palletDrawH;
+  const oy = drawY + drawH - padding - palletDrawH;
 
   // 托盘底
-  roundRect(ctx, ox - 5, oy, drawBW * count + 10, palletDrawH, 3, C.palletColor);
+  roundRect(ctx, ox - 4, oy, drawBW * count + 8, palletDrawH, 3, C.palletColor);
+  ctx.strokeStyle = '#1A1A1A';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(ox - 4, oy, drawBW * count + 8, palletDrawH);
 
   // 箱体
   for (let i = 0; i < count; i++) {
@@ -336,20 +357,38 @@ function drawSideView(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
     const bw = drawBW - 2;
     const bh = drawBH;
 
-    roundRect(ctx, bx, by, bw, bh, 2, C.boxColor);
-    ctx.strokeStyle = C.boxDark;
-    ctx.lineWidth = 1;
+    const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+    grad.addColorStop(0, '#D9AD7C');
+    grad.addColorStop(1, '#C89B6A');
+    roundRect(ctx, bx, by, bw, bh, 2, '#D4A77A');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = C.boxStroke;
+    ctx.lineWidth = 0.8;
     ctx.strokeRect(bx, by, bw, bh);
+
+    // 瓦楞纹理
+    ctx.strokeStyle = 'rgba(160,112,64,0.2)';
+    ctx.lineWidth = 0.3;
+    for (let ly = by + 3; ly < by + bh - 2; ly += 3) {
+      ctx.beginPath(); ctx.moveTo(bx + 2, ly); ctx.lineTo(bx + bw - 2, ly); ctx.stroke();
+    }
+
+    // 产品名
+    if (bw > 20 && bh > 15) {
+      ctx.fillStyle = C.brownDark;
+      ctx.font = `${Math.min(9, bw / 5)}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('产品', bx + bw / 2, by + bh / 2 + 3);
+    }
   }
 
-  // 横向标注
-  drawDimensionLine(ctx, ox, oy + palletDrawH + 20, ox + drawBW * count, oy + palletDrawH + 20, `${totalBoxW} 毫米`, 'bottom');
-
-  // 纵向标注
-  drawDimensionLine(ctx, ox - 20, oy - drawBH, ox - 20, oy, `${boxH} 毫米`, 'left');
+  // 标注
+  drawDimLine(ctx, ox, oy + palletDrawH + 16, ox + drawBW * count, oy + palletDrawH + 16, `${totalBoxW} 毫米`, 'bottom');
+  drawDimLine(ctx, ox - 16, oy - drawBH, ox - 16, oy, `${boxH} 毫米`, 'left');
 }
 
-/** 绘制托盘详情 - 等轴测3D效果 */
+/** 绘制托盘详情 */
 function drawPalletDetail(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, pallet: PalletDimensions) {
   const isoAngle = Math.PI / 6;
   const cosA = Math.cos(isoAngle);
@@ -358,79 +397,85 @@ function drawPalletDetail(ctx: CanvasRenderingContext2D, x: number, y: number, w
   const palletL = pallet.length;
   const palletW = pallet.width;
   const palletH = pallet.height;
-  const maxDim = Math.max(palletL, palletW);
 
-  const scale = Math.min((w - 80) / (palletL * cosA + palletW * cosA), (h - 80) / (palletW * sinA + palletL * sinA + palletH)) * 0.8;
+  const scale = Math.min((w - 100) / (palletL * cosA + palletW * cosA), (h - 40) / (palletW * sinA + palletL * sinA + palletH)) * 0.7;
 
   const sL = palletL * scale;
   const sW = palletW * scale;
   const sH = palletH * scale * 1.5;
 
-  const cx = x + w / 2;
-  const cy = y + h / 2 + 20;
+  const cx = x + w * 0.45;
+  const cy = y + h / 2 + 10;
 
-  // 等轴测投影
   function iso(dx: number, dy: number, dz: number): [number, number] {
-    return [
-      cx + (dx - dy) * cosA,
-      cy + (dx + dy) * sinA - dz,
-    ];
+    return [cx + (dx - dy) * cosA, cy + (dx + dy) * sinA - dz];
   }
+
+  // 阴影
+  const shadowPts = [iso(3, 3, -3), iso(sL + 3, 3, -3), iso(sL + 3, sW + 3, -3), iso(3, sW + 3, -3)];
+  drawPolygon(ctx, shadowPts, 'rgba(0,0,0,0.08)', 'rgba(0,0,0,0)');
 
   // 顶面
-  const topPoints = [iso(0, 0, sH), iso(sL, 0, sH), iso(sL, sW, sH), iso(0, sW, sH)];
-  drawPolygon(ctx, topPoints, C.palletTop, '#555555');
+  drawPolygon(ctx, [iso(0, 0, sH), iso(sL, 0, sH), iso(sL, sW, sH), iso(0, sW, sH)], C.palletTop, '#555555');
 
-  // 网格纹理 - 顶面
-  ctx.strokeStyle = '#555555';
-  ctx.lineWidth = 0.5;
-  const gridStep = sL / 12;
-  for (let i = gridStep; i < sL; i += gridStep) {
-    const p1 = iso(i, 0, sH);
-    const p2 = iso(i, sW, sH);
-    ctx.beginPath();
-    ctx.moveTo(p1[0], p1[1]);
-    ctx.lineTo(p2[0], p2[1]);
-    ctx.stroke();
+  // 网格纹理
+  ctx.strokeStyle = '#4A4A4A';
+  ctx.lineWidth = 0.4;
+  const gsL = sL / 12;
+  for (let i = gsL; i < sL; i += gsL) {
+    const p1 = iso(i, 0, sH); const p2 = iso(i, sW, sH);
+    ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
   }
-  const gridStepW = sW / 10;
-  for (let j = gridStepW; j < sW; j += gridStepW) {
-    const p1 = iso(0, j, sH);
-    const p2 = iso(sL, j, sH);
-    ctx.beginPath();
-    ctx.moveTo(p1[0], p1[1]);
-    ctx.lineTo(p2[0], p2[1]);
-    ctx.stroke();
+  const gsW = sW / 10;
+  for (let j = gsW; j < sW; j += gsW) {
+    const p1 = iso(0, j, sH); const p2 = iso(sL, j, sH);
+    ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
   }
 
-  // 前面（左）
-  const frontLeftPoints = [iso(0, 0, sH), iso(0, 0, 0), iso(0, sW, 0), iso(0, sW, sH)];
-  drawPolygon(ctx, frontLeftPoints, C.palletFace, '#444444');
+  // 前面
+  drawPolygon(ctx, [iso(0, 0, sH), iso(0, 0, 0), iso(0, sW, 0), iso(0, sW, sH)], C.palletFace, '#444444');
+  drawPolygon(ctx, [iso(0, 0, sH), iso(0, 0, 0), iso(sL, 0, 0), iso(sL, 0, sH)], C.palletColor, '#333333');
 
-  // 前面（右）
-  const frontRightPoints = [iso(0, 0, sH), iso(0, 0, 0), iso(sL, 0, 0), iso(sL, 0, sH)];
-  drawPolygon(ctx, frontRightPoints, C.palletColor, '#333333');
-
-  // 川字脚垫 - 3条纵梁
-  const beamW = sW * 0.08;
+  // 川字脚垫
+  const beamW = sW * 0.07;
   for (const offset of [0.15, 0.5, 0.85]) {
     const bY = sW * offset - beamW / 2;
-    const p1 = iso(0, bY, 0);
-    const p2 = iso(sL, bY, 0);
-    const p3 = iso(sL, bY + beamW, 0);
-    const p4 = iso(0, bY + beamW, 0);
-    drawPolygon(ctx, [p1, p2, p3, p4], '#222222', '#111111');
+    drawPolygon(ctx, [iso(0, bY, 0), iso(sL, bY, 0), iso(sL, bY + beamW, 0), iso(0, bY + beamW, 0)], '#222222', '#111111');
   }
 
-  // 标注线
-  const bottomY = iso(0, sW, 0);
-  drawDimensionLine(ctx, bottomY[0], bottomY[1] + 30, bottomY[0] + sL * cosA, bottomY[1] + 30 + sL * sinA, `${pallet.length} 毫米`, 'bottom');
+  // 叉车孔（前面3个）
+  const forkH = sH * 0.45;
+  const forkY1 = sW * 0.15;
+  const forkY2 = sW * 0.5 - beamW / 2;
+  const forkY3 = sW * 0.85;
+  for (const fy of [forkY1, forkY2, forkY3]) {
+    const fw = beamW * 0.6;
+    drawPolygon(ctx, [
+      iso(0, fy, sH * 0.2), iso(sL * 0.3, fy, sH * 0.2),
+      iso(sL * 0.3, fy + fw, sH * 0.2), iso(0, fy + fw, sH * 0.2)
+    ], '#1A1A1A', '#111111');
+  }
 
-  const rightX = iso(sL, 0, 0);
-  drawDimensionLine(ctx, rightX[0] + 20, rightX[1], rightX[0] + 20, rightX[1] - sH, `${pallet.height} 毫米`, 'right');
+  // 右侧文字标注
+  const textX = x + w * 0.72;
+  ctx.fillStyle = C.black;
+  ctx.font = '14px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`, textX, y + 50);
+  ctx.fillText(`托盘材质: 塑料`, textX, y + 75);
+
+  // 蓝色标注线
+  const bottomPt = iso(0, sW, 0);
+  drawDimLine(ctx, bottomPt[0], bottomPt[1] + 18, bottomPt[0] + sL * cosA, bottomPt[1] + 18 + sL * sinA, `${pallet.length} 毫米`, 'bottom');
+
+  const rightPt = iso(sL, 0, 0);
+  drawDimLine(ctx, rightPt[0] + 12, rightPt[1], rightPt[0] + 12 + sW * cosA, rightPt[1] + sW * sinA, `${pallet.width} 毫米`, 'bottom');
+
+  const topPt = iso(sL, 0, sH);
+  drawDimLine(ctx, topPt[0] + 12, topPt[1], topPt[0] + 12, topPt[1] + sH, `${pallet.height} 毫米`, 'right');
 }
 
-/** 绘制成品堆叠效果图 - 等轴测3D */
+/** 绘制成品堆叠效果图 */
 function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions, productName: string) {
   const isoAngle = Math.PI / 6;
   const cosA = Math.cos(isoAngle);
@@ -440,15 +485,14 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   const palletW = pallet.width;
   const palletH = pallet.height;
   const layers = plan.layers;
-
   const totalBoxH = plan.boxStackHeight * layers;
   const totalH = palletH + totalBoxH;
 
   // 缩放
   const maxExtent = Math.max(palletL, palletW);
-  const scaleH = (h - 60) / (totalH * 0.5 + maxExtent * sinA);
-  const scaleW = (w - 60) / (maxExtent * 2 * cosA);
-  const scale = Math.min(scaleH, scaleW, 0.5);
+  const scaleH = (h - 40) / (totalH * 0.5 + maxExtent * sinA);
+  const scaleW = (w - 30) / (maxExtent * 2 * cosA);
+  const scale = Math.min(scaleH, scaleW) * 0.85;
 
   const sL = palletL * scale;
   const sW = palletW * scale;
@@ -456,42 +500,52 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   const sBH = plan.boxStackHeight * scale;
 
   const cx = x + w / 2;
-  const baseY = y + h - 30;
+  const baseY = y + h - 15;
 
   function iso(dx: number, dy: number, dz: number): [number, number] {
-    return [
-      cx + (dx - dy) * cosA,
-      baseY - (dx + dy) * sinA - dz,
-    ];
+    return [cx + (dx - dy) * cosA, baseY - (dx + dy) * sinA - dz];
   }
 
-  // 托盘
+  // 地面阴影
+  const shadowPts = [iso(-5, -5, 0), iso(sL + 5, -5, 0), iso(sL + 5, sW + 5, 0), iso(-5, sW + 5, 0)];
+  drawPolygon(ctx, shadowPts, 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0)');
+
+  // === 托盘 ===
   const ph = sPH;
   // 顶面
   drawPolygon(ctx, [iso(0, 0, ph), iso(sL, 0, ph), iso(sL, sW, ph), iso(0, sW, ph)], C.palletTop, '#555555');
-  // 网格
-  ctx.strokeStyle = '#555555';
-  ctx.lineWidth = 0.5;
-  const gs = sL / 10;
+  // 顶面网格
+  ctx.strokeStyle = '#4A4A4A';
+  ctx.lineWidth = 0.3;
+  const gs = sL / 12;
   for (let i = gs; i < sL; i += gs) {
-    const p1 = iso(i, 0, ph);
-    const p2 = iso(i, sW, ph);
+    const p1 = iso(i, 0, ph); const p2 = iso(i, sW, ph);
     ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
   }
   // 前面
   drawPolygon(ctx, [iso(0, 0, ph), iso(0, 0, 0), iso(0, sW, 0), iso(0, sW, ph)], C.palletFace, '#444444');
   drawPolygon(ctx, [iso(0, 0, ph), iso(0, 0, 0), iso(sL, 0, 0), iso(sL, 0, ph)], C.palletColor, '#333333');
 
-  // 箱体层
+  // 脚垫
+  const beamW = sW * 0.06;
+  for (const off of [0.15, 0.5, 0.85]) {
+    const bY = sW * off - beamW / 2;
+    drawPolygon(ctx, [iso(0, bY, 0), iso(sL, bY, 0), iso(sL, bY + beamW, 0), iso(0, bY + beamW, 0)], '#222222', '#111111');
+  }
+
+  // === 箱体层 ===
   const sections = plan.sections;
   for (let layer = 0; layer < layers; layer++) {
     const layerZ = ph + layer * sBH;
-    const layerTint = layer / layers; // 0~1 渐变
-    const boxR = Math.round(212 - layerTint * 30);
-    const boxG = Math.round(167 - layerTint * 25);
-    const boxB = Math.round(122 - layerTint * 20);
+    const t = layer / Math.max(layers - 1, 1); // 0~1
+    // 层级颜色渐变：底层深，上层浅
+    const boxR = Math.round(196 + t * 20);
+    const boxG = Math.round(150 + t * 18);
+    const boxB = Math.round(98 + t * 22);
     const boxFill = `rgb(${boxR},${boxG},${boxB})`;
-    const boxStroke = `rgb(${boxR - 20},${boxG - 20},${boxB - 20})`;
+    const boxLight = `rgb(${boxR + 18},${boxG + 18},${boxB + 18})`;
+    const boxDark = `rgb(${boxR - 25},${boxG - 25},${boxB - 20})`;
+    const boxStrokeC = `rgb(${boxR - 40},${boxG - 40},${boxB - 30})`;
 
     let currentW = 0;
     for (const section of sections) {
@@ -503,40 +557,65 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
         for (let col = 0; col < section.countAlongLength; col++) {
           const dx = col * bL;
           const dy = currentW + row * bW;
-          const gap = 0.5;
+          const gap = 0.4;
 
           // 顶面
           const t1 = iso(dx + gap, dy + gap, layerZ + sBH);
           const t2 = iso(dx + bL - gap, dy + gap, layerZ + sBH);
           const t3 = iso(dx + bL - gap, dy + bW - gap, layerZ + sBH);
           const t4 = iso(dx + gap, dy + bW - gap, layerZ + sBH);
-          drawPolygon(ctx, [t1, t2, t3, t4], lighten(boxFill, 15), boxStroke);
+          drawPolygon(ctx, [t1, t2, t3, t4], boxLight, boxStrokeC);
 
-          // 前面 (左侧可见面 - y=dy+gap)
+          // 左前面 (y = dy + gap)
           const f1 = iso(dx + gap, dy + gap, layerZ + sBH);
           const f2 = iso(dx + bL - gap, dy + gap, layerZ + sBH);
           const f3 = iso(dx + bL - gap, dy + gap, layerZ);
           const f4 = iso(dx + gap, dy + gap, layerZ);
-          drawPolygon(ctx, [f1, f2, f3, f4], boxFill, boxStroke);
+          drawPolygon(ctx, [f1, f2, f3, f4], boxFill, boxStrokeC);
 
-          // 右面 (x=dx+bL-gap)
+          // 右面 (x = dx + bL - gap)
           const r1 = iso(dx + bL - gap, dy + gap, layerZ + sBH);
           const r2 = iso(dx + bL - gap, dy + bW - gap, layerZ + sBH);
           const r3 = iso(dx + bL - gap, dy + bW - gap, layerZ);
           const r4 = iso(dx + bL - gap, dy + gap, layerZ);
-          drawPolygon(ctx, [r1, r2, r3, r4], darken(boxFill, 15), boxStroke);
+          drawPolygon(ctx, [r1, r2, r3, r4], boxDark, boxStrokeC);
 
-          // 正面标签 (仅在第一层第一个箱体可见面画文字)
-          if (layer === 0 && col === 0 && row === 0) {
-            // 在左侧面画产品名
+          // 瓦楞纹理 - 正面
+          const ft = (f1[1] + f4[1]) / 2;
+          const fb = (f2[1] + f3[1]) / 2;
+          const fl = (f1[0] + f4[0]) / 2;
+          const fr = (f2[0] + f3[0]) / 2;
+          ctx.strokeStyle = `rgba(${boxR - 40},${boxG - 40},${boxB - 30},0.15)`;
+          ctx.lineWidth = 0.3;
+          const stepY = (fb - ft) / 4;
+          for (let k = 1; k < 4; k++) {
+            const ly = ft + k * stepY;
+            const lx = fl + (fr - fl) * (k / 4);
+            const rx = fl + (fr - fl) * (1 - k / 4);
+            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ly); ctx.stroke();
+          }
+
+          // 产品标签 - 正面可见面（仅前两行、前两层绘制）
+          if (row < 2 && layer < 2) {
             const labelCx = (f1[0] + f2[0] + f3[0] + f4[0]) / 4;
             const labelCy = (f1[1] + f2[1] + f3[1] + f4[1]) / 4;
-            ctx.save();
-            ctx.fillStyle = C.brown;
-            ctx.font = `bold ${Math.min(14, bL * cosA * 0.3)}px "Microsoft YaHei", sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.fillText(productName || '产品', labelCx, labelCy);
-            ctx.restore();
+            const faceW = Math.sqrt((f1[0] - f2[0]) ** 2 + (f1[1] - f2[1]) ** 2);
+            const faceH = Math.sqrt((f1[0] - f4[0]) ** 2 + (f1[1] - f4[1]) ** 2);
+            if (faceW > 12 && faceH > 10) {
+              // 白色标签底
+              const lW = Math.min(faceW * 0.7, 40);
+              const lH = Math.min(faceH * 0.5, 16);
+              ctx.fillStyle = 'rgba(255,255,255,0.85)';
+              ctx.fillRect(labelCx - lW / 2, labelCy - lH / 2, lW, lH);
+              ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+              ctx.lineWidth = 0.5;
+              ctx.strokeRect(labelCx - lW / 2, labelCy - lH / 2, lW, lH);
+              // 产品名
+              ctx.fillStyle = C.black;
+              ctx.font = `bold ${Math.min(8, lW / 5)}px "Microsoft YaHei", sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.fillText(productName || '产品', labelCx, labelCy + 2);
+            }
           }
         }
       }
@@ -545,119 +624,121 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   }
 }
 
-/** 绘制高度标注信息 */
-function drawHeightAnnotation(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, plan: PalletPlan, pallet: PalletDimensions, maxHeight: number) {
+/** 高度标注信息 */
+function drawHeightAnnotation(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions, maxHeight: number) {
   const totalH = plan.totalHeight;
   const boxTotalH = plan.boxStackHeight * plan.layers;
   const palletH = pallet.height;
+  const ok = plan.heightOk;
 
-  // 蓝色竖线
-  const lineX = x + 15;
+  // 蓝色竖线 - 全高
+  const lineX = x + 12;
   ctx.strokeStyle = C.blueLine;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(lineX, y + 10);
-  ctx.lineTo(lineX, y + h - 10);
+  ctx.moveTo(lineX, y + 8);
+  ctx.lineTo(lineX, y + h - 8);
   ctx.stroke();
 
-  // 上箭头
-  ctx.beginPath();
-  ctx.moveTo(lineX, y + 5);
-  ctx.lineTo(lineX - 5, y + 15);
-  ctx.lineTo(lineX + 5, y + 15);
-  ctx.closePath();
-  ctx.fillStyle = C.blueLine;
-  ctx.fill();
+  // 上下箭头
+  drawArrow(ctx, lineX, y + 8, 'up');
+  drawArrow(ctx, lineX, y + h - 8, 'down');
 
-  // 下箭头
+  // 箱体高度段虚线
+  const boxRatio = boxTotalH / totalH;
+  const boxLineY = y + 8 + (1 - boxRatio) * (h - 16);
+  ctx.strokeStyle = C.blueLine;
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  ctx.moveTo(lineX, y + h - 5);
-  ctx.lineTo(lineX - 5, y + h - 15);
-  ctx.lineTo(lineX + 5, y + h - 15);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(lineX - 6, boxLineY);
+  ctx.lineTo(lineX + 20, boxLineY);
+  ctx.stroke();
+  ctx.setLineDash([]);
 
-  // 文字区域
+  // 托盘高度段虚线
+  const palletRatio = palletH / totalH;
+  const palletLineY = y + h - 8 - palletRatio * (h - 16);
+  ctx.strokeStyle = C.blueLine;
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(lineX - 6, palletLineY);
+  ctx.lineTo(lineX + 20, palletLineY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 文字
   let ty = y + 30;
   ctx.textAlign = 'left';
 
   // 托盘总高度
   ctx.fillStyle = C.black;
-  ctx.font = '18px "Microsoft YaHei", sans-serif';
-  ctx.fillText('托盘总高度', x + 30, ty);
-  ty += 30;
+  ctx.font = '14px "Microsoft YaHei", sans-serif';
+  ctx.fillText('托盘总高度', x + 28, ty);
+  ty += 24;
 
   ctx.fillStyle = C.red;
-  ctx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`${totalH} 毫米`, x + 30, ty);
-  ty += 25;
+  ctx.font = 'bold 18px "Microsoft YaHei", sans-serif';
+  ctx.fillText(`${totalH} 毫米`, x + 28, ty);
+  ty += 20;
 
   ctx.fillStyle = C.blue;
-  ctx.font = '16px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`(不超过 ${maxHeight} 毫米)`, x + 30, ty);
-  ty += 45;
+  ctx.font = '12px "Microsoft YaHei", sans-serif';
+  ctx.fillText(`(不超过 ${maxHeight} 毫米)`, x + 28, ty);
+  ty += 35;
 
   // 分项
   ctx.fillStyle = C.black;
-  ctx.font = '18px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`箱体高度 ${plan.boxStackHeight} 毫米`, x + 30, ty);
+  ctx.font = '13px "Microsoft YaHei", sans-serif';
+  ctx.fillText(`箱体高度 ${plan.boxStackHeight} 毫米`, x + 28, ty);
+  ty += 22;
+  ctx.fillText(`层数: ${plan.layers} 层`, x + 28, ty);
+  ty += 22;
+  ctx.fillText(`= ${boxTotalH} 毫米`, x + 28, ty);
   ty += 30;
-  ctx.fillText(`层数: ${plan.layers} 层`, x + 30, ty);
-  ty += 30;
-  ctx.fillText(`= ${boxTotalH} 毫米`, x + 30, ty);
+  ctx.fillText(`托盘高度 ${palletH} 毫米`, x + 28, ty);
   ty += 40;
-  ctx.fillText(`托盘高度 ${palletH} 毫米`, x + 30, ty);
-  ty += 50;
 
   // 总高度确认
   ctx.fillStyle = C.black;
-  ctx.font = '18px "Microsoft YaHei", sans-serif';
-  ctx.fillText('总高度', x + 30, ty);
-  ty += 30;
+  ctx.font = '14px "Microsoft YaHei", sans-serif';
+  ctx.fillText('总高度', x + 28, ty);
+  ty += 24;
 
   ctx.fillStyle = C.red;
-  ctx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`${totalH} 毫米`, x + 30, ty);
-  ty += 25;
+  ctx.font = 'bold 18px "Microsoft YaHei", sans-serif';
+  ctx.fillText(`${totalH} 毫米`, x + 28, ty);
+  ty += 20;
 
-  const ok = plan.heightOk;
   ctx.fillStyle = ok ? C.blue : C.red;
-  ctx.font = '16px "Microsoft YaHei", sans-serif';
-  ctx.fillText(ok ? '(符合要求)' : '(超出限制!)', x + 30, ty);
-
-  // 蓝色分段横线 - 箱体总高
-  const boxRatio = boxTotalH / totalH;
-  const boxLineY = y + 10 + (1 - boxRatio) * (h - 20);
-  ctx.strokeStyle = C.blueLine;
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 3]);
-  ctx.beginPath();
-  ctx.moveTo(lineX - 10, boxLineY);
-  ctx.lineTo(lineX + 25, boxLineY);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.font = '12px "Microsoft YaHei", sans-serif';
+  ctx.fillText(ok ? '(符合要求)' : '(超出限制!)', x + 28, ty);
 }
 
-/** 绘制信息汇总 */
+/** 信息汇总 */
 function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, plan: PalletPlan, pallet: PalletDimensions, maxHeight: number) {
   // 米色背景
-  roundRect(ctx, x, y, w, h, 8, C.cream);
+  roundRect(ctx, x, y, w, h, 6, C.cream);
   ctx.strokeStyle = C.creamBorder;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.2;
   ctx.strokeRect(x, y, w, h);
 
-  // 标题
-  const titleW = 200;
-  drawSectionTitle(ctx, x + 15, y - 18, titleW, '信息汇总');
+  // 标题 - 覆盖在边框上方
+  const titleW = 160;
+  ctx.save();
+  ctx.fillStyle = C.cream;
+  ctx.fillRect(x + 12, y - 10, titleW + 4, 14);
+  ctx.restore();
+  drawSectionTitle(ctx, x + 14, y - 16, titleW, '信息汇总');
 
-  // 内容 - 两列
+  // 内容两列
   const leftItems = [
     `箱体尺寸: ${plan.originalBox.width} × ${plan.originalBox.length} × ${plan.originalBox.height} 毫米`,
     `堆码方式: ${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`,
     `每层箱数: ${plan.boxesPerLayer} 箱`,
     `层数: ${plan.layers} 层`,
   ];
-
   const rightItems = [
     `每托箱数: ${plan.totalBoxes} 箱`,
     `托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`,
@@ -665,36 +746,36 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
     `可使用标准运输及仓储设备作业`,
   ];
 
-  ctx.font = '18px "Microsoft YaHei", sans-serif';
-  ctx.textAlign = 'left';
+  const colW = (w - 60) / 2;
+  const startY = y + 22;
+  const lineH = 22;
 
-  const colW = (w - 80) / 2;
-  const startY = y + 40;
-  const lineH = 28;
+  ctx.font = '13px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'left';
 
   leftItems.forEach((item, i) => {
     const iy = startY + i * lineH;
     ctx.fillStyle = C.green;
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('✓', x + 30, iy);
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('✓', x + 22, iy);
     ctx.fillStyle = C.black;
-    ctx.font = '17px "Microsoft YaHei", sans-serif';
-    ctx.fillText(item, x + 55, iy);
+    ctx.font = '13px "Microsoft YaHei", sans-serif';
+    ctx.fillText(item, x + 38, iy);
   });
 
   rightItems.forEach((item, i) => {
     const iy = startY + i * lineH;
-    const ix = x + colW + 50;
+    const ix = x + colW + 35;
     ctx.fillStyle = C.green;
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = 'bold 13px sans-serif';
     ctx.fillText('✓', ix, iy);
     ctx.fillStyle = C.black;
-    ctx.font = '17px "Microsoft YaHei", sans-serif';
-    ctx.fillText(item, ix + 25, iy);
+    ctx.font = '13px "Microsoft YaHei", sans-serif';
+    ctx.fillText(item, ix + 16, iy);
   });
 }
 
-// ===== 通用绘图工具 =====
+// ===== 通用工具 =====
 
 function drawPolygon(ctx: CanvasRenderingContext2D, points: [number, number][], fill: string, stroke: string) {
   ctx.beginPath();
@@ -705,90 +786,77 @@ function drawPolygon(ctx: CanvasRenderingContext2D, points: [number, number][], 
   ctx.closePath();
   ctx.fillStyle = fill;
   ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  if (stroke !== 'rgba(0,0,0,0)') {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
 }
 
-function drawDimensionLine(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, text: string, position: 'bottom' | 'left' | 'right') {
+function drawDimLine(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, text: string, position: 'bottom' | 'left' | 'right') {
   ctx.strokeStyle = C.blueLine;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1;
 
-  // 主线
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.stroke();
 
-  // 箭头
-  const arrowSize = 6;
+  const as = 5;
   if (position === 'bottom') {
     // 左箭头
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1 + arrowSize, y1 - arrowSize / 2);
-    ctx.lineTo(x1 + arrowSize, y1 + arrowSize / 2);
-    ctx.closePath();
-    ctx.fillStyle = C.blueLine;
-    ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + as, y1 - as / 2); ctx.lineTo(x1 + as, y1 + as / 2); ctx.closePath();
+    ctx.fillStyle = C.blueLine; ctx.fill();
     // 右箭头
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - arrowSize, y2 - arrowSize / 2);
-    ctx.lineTo(x2 - arrowSize, y2 + arrowSize / 2);
-    ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - as, y2 - as / 2); ctx.lineTo(x2 - as, y2 + as / 2); ctx.closePath();
     ctx.fill();
     // 文字
     ctx.fillStyle = C.blue;
-    ctx.font = '16px "Microsoft YaHei", sans-serif';
+    ctx.font = '12px "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(text, (x1 + x2) / 2, y1 + 22);
-  } else {
-    const isLeft = position === 'left';
-    const dir = isLeft ? -1 : 1;
-    // 上箭头
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1 - dir * arrowSize / 2, y1 + arrowSize);
-    ctx.lineTo(x1 + dir * arrowSize / 2, y1 + arrowSize);
-    ctx.closePath();
-    ctx.fillStyle = C.blueLine;
+    ctx.fillText(text, (x1 + x2) / 2, y1 + 14);
+  } else if (position === 'left') {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + as / 2, y1 + as); ctx.lineTo(x1 - as / 2, y1 + as); ctx.closePath();
+    ctx.fillStyle = C.blueLine; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 + as / 2, y2 - as); ctx.lineTo(x2 - as / 2, y2 - as); ctx.closePath();
     ctx.fill();
-    // 下箭头
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - dir * arrowSize / 2, y2 - arrowSize);
-    ctx.lineTo(x2 + dir * arrowSize / 2, y2 - arrowSize);
-    ctx.closePath();
-    ctx.fill();
-    // 文字 - 旋转90度
-    ctx.save();
     ctx.fillStyle = C.blue;
-    ctx.font = '16px "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    const midX = (x1 + x2) / 2 + (isLeft ? -20 : 20);
-    const midY = (y1 + y2) / 2;
-    ctx.translate(midX, midY);
+    ctx.font = '12px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.save();
+    ctx.translate(x1 - 10, (y1 + y2) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  } else if (position === 'right') {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - as / 2, y1 + as); ctx.lineTo(x1 + as / 2, y1 + as); ctx.closePath();
+    ctx.fillStyle = C.blueLine; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - as / 2, y2 - as); ctx.lineTo(x2 + as / 2, y2 - as); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = C.blue;
+    ctx.font = '12px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.save();
+    ctx.translate(x1 + 12, (y1 + y2) / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillText(text, 0, 0);
     ctx.restore();
   }
 }
 
-function lighten(color: string, amount: number): string {
-  const m = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
-  if (!m) return color;
-  const r = Math.min(255, parseInt(m[1]) + amount);
-  const g = Math.min(255, parseInt(m[2]) + amount);
-  const b = Math.min(255, parseInt(m[3]) + amount);
-  return `rgb(${r},${g},${b})`;
-}
-
-function darken(color: string, amount: number): string {
-  const m = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
-  if (!m) return color;
-  const r = Math.max(0, parseInt(m[1]) - amount);
-  const g = Math.max(0, parseInt(m[2]) - amount);
-  const b = Math.max(0, parseInt(m[3]) - amount);
-  return `rgb(${r},${g},${b})`;
+function drawArrow(ctx: CanvasRenderingContext2D, x: number, y: number, dir: 'up' | 'down') {
+  const s = 5;
+  ctx.beginPath();
+  if (dir === 'up') {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - s, y + s * 1.5);
+    ctx.lineTo(x + s, y + s * 1.5);
+  } else {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - s, y - s * 1.5);
+    ctx.lineTo(x + s, y - s * 1.5);
+  }
+  ctx.closePath();
+  ctx.fillStyle = C.blueLine;
+  ctx.fill();
 }
