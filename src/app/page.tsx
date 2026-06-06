@@ -8,9 +8,14 @@ import { LayoutView2D } from "@/components/LayoutView2D";
 import { PalletView3D } from "@/components/PalletView3D";
 import { Summary } from "@/components/Summary";
 import { LayerExplodedView } from "@/components/LayerExplodedView";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, RotateCw, RefreshCw, Layers } from "lucide-react";
+import {
+  Package,
+  RefreshCw,
+  Layers,
+  ChevronLeft,
+  Settings2,
+} from "lucide-react";
 
 const DEFAULT_INPUT: PalletizeInput = {
   productName: "",
@@ -24,10 +29,9 @@ export default function HomePage() {
   const [input, setInput] = useState<PalletizeInput>(DEFAULT_INPUT);
   const [result, setResult] = useState<PalletizeResult | null>(null);
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
-  // 追踪上次计算时的输入，用于判断参数是否已变更
   const [lastCalcInput, setLastCalcInput] = useState<PalletizeInput | null>(null);
-  // 3D展示模式：stacked=整体堆叠, layers=分层展示
   const [viewMode, setViewMode] = useState<"stacked" | "layers">("stacked");
+  const [showInput, setShowInput] = useState(true);
 
   const handleCalculate = useCallback(() => {
     const res = calculatePalletPlan(input);
@@ -36,7 +40,6 @@ export default function HomePage() {
     setLastCalcInput(input);
   }, [input]);
 
-  // 判断参数是否已变更（需要重新计算）
   const inputChanged =
     result !== null &&
     lastCalcInput !== null &&
@@ -53,246 +56,263 @@ export default function HomePage() {
   const selectedPlan: PalletPlan | null = result?.plans?.[selectedPlanIndex] ?? result?.bestPlan ?? null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* 顶部标题栏 */}
-      <header className="bg-slate-800 text-white px-6 py-3 flex items-center justify-between shadow-md">
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* 顶部标题栏 - 参考麦斯堆风格 */}
+      <header className="bg-[#5C3924] text-white px-6 py-2.5 flex items-center justify-between shadow-md flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Package className="h-6 w-6 text-blue-400" />
-          <h1 className="text-lg font-bold tracking-wide">托盘打托排版系统</h1>
-          {input.productName && (
-            <Badge variant="secondary" className="bg-slate-700 text-slate-200 text-xs">
-              产品: {input.productName}
-            </Badge>
-          )}
+          <Package className="h-5 w-5" />
+          <h1 className="text-base font-bold tracking-wide">
+            托盘打托排版系统
+            {input.productName && (
+              <span className="font-normal ml-2 opacity-90">
+                — 产品: {input.productName}
+              </span>
+            )}
+          </h1>
         </div>
-        <div className="text-xs text-slate-400">
-          输入箱体与托盘参数，智能计算最优打托方案
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowInput(!showInput)}
+            variant="ghost"
+            size="sm"
+            className="text-white/80 hover:text-white hover:bg-white/10 text-xs h-7 px-3"
+          >
+            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+            {showInput ? "隐藏参数" : "显示参数"}
+          </Button>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* 左侧：参数输入面板 */}
-        <aside className="w-80 border-r border-slate-200 bg-white p-5 overflow-y-auto flex-shrink-0">
-          <InputForm input={input} onInputChange={setInput} onCalculate={handleCalculate} />
-        </aside>
+        {/* 左侧：参数输入面板（可折叠） */}
+        {showInput && (
+          <aside className="w-72 border-r border-[#E2E8F0] bg-white p-4 overflow-y-auto flex-shrink-0">
+            <InputForm input={input} onInputChange={setInput} onCalculate={handleCalculate} />
+          </aside>
+        )}
 
-        {/* 右侧：可视化结果区 */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* 右侧：报告式展示区 */}
+        <main className="flex-1 overflow-y-auto">
           {!result || !selectedPlan ? (
             /* 空状态 */
-            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-              <RotateCw className="h-16 w-16 mb-4 opacity-30" />
-              <h2 className="text-xl font-medium mb-2">请输入参数并计算</h2>
-              <p className="text-sm text-slate-400">
-                填写左侧箱体与托盘参数，点击&quot;计算打托方案&quot;查看结果
+            <div className="flex flex-col items-center justify-center h-full text-[#94A3B8]">
+              <Package className="h-16 w-16 mb-4 opacity-20" />
+              <h2 className="text-xl font-medium mb-2 text-[#64748B]">请输入参数并计算</h2>
+              <p className="text-sm">
+                填写箱体与托盘参数，点击&quot;计算打托方案&quot;查看结果
               </p>
             </div>
           ) : (
-            <>
-              {/* 参数变更提示 + 重新计算按钮 */}
+            <div className="p-6 max-w-[1200px] mx-auto space-y-5">
+              {/* 参数变更提示 */}
               {inputChanged && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-amber-700 text-sm">
+                <div className="bg-[#FEF3C7] border border-[#F59E0B] rounded px-4 py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#92400E] text-sm">
                     <RefreshCw className="h-4 w-4" />
                     <span>参数已变更，当前结果可能不准确</span>
                   </div>
                   <Button
                     onClick={handleCalculate}
                     size="sm"
-                    className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8 px-4"
+                    className="bg-[#F59E0B] hover:bg-[#D97706] text-white text-xs h-7 px-3"
                   >
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    <RefreshCw className="h-3 w-3 mr-1" />
                     重新计算
                   </Button>
                 </div>
               )}
 
-              {/* 顶部操作栏：重新生成 */}
-              <div className="bg-white border border-slate-200 rounded-lg px-4 py-2.5 flex items-center justify-between">
-                <div className="text-sm text-slate-500">
-                  当前方案：方案{selectedPlanIndex + 1} / 共 {result.plans.length} 种可行方案
-                </div>
-                <Button
-                  onClick={handleCalculate}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  重新生成方案
-                </Button>
-              </div>
+              {/* ===== 报告式布局：匹配参考图 ===== */}
 
-              {/* 方案选择 */}
-              {result.plans.length > 1 && (
-                <div className="bg-white border border-slate-200 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                    可行方案（共 {result.plans.length} 种，按装箱数降序）
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {result.plans.map((plan, idx) => (
-                      <button
-                        key={plan.id}
-                        onClick={() => setSelectedPlanIndex(idx)}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                          idx === selectedPlanIndex
-                            ? "bg-blue-500 text-white shadow-sm"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}
-                      >
-                        方案{idx + 1}: {plan.totalBoxes}箱 ({plan.orientation})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 核心参数回显表格 */}
-              <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              {/* 1. 核心参数表格 - 参考麦斯堆表格风格 */}
+              <div className="border border-[#CCCCCC] rounded overflow-hidden">
+                <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">箱体类型</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">箱体尺寸(L×W×H)</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">堆码方式</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">每层箱数</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">层数</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">每托箱数</th>
+                    <tr className="bg-[#F0F0F0]">
+                      <th className="px-4 py-2 text-center font-medium text-[#333] border-r border-[#CCCCCC]">箱体类型</th>
+                      <th className="px-4 py-2 text-center font-medium text-[#333] border-r border-[#CCCCCC]">箱体尺寸(长×宽×高 毫米)</th>
+                      <th className="px-4 py-2 text-center font-medium text-[#333] border-r border-[#CCCCCC]">堆码方式(长×宽×高)</th>
+                      <th className="px-4 py-2 text-center font-medium text-[#333] border-r border-[#CCCCCC]">每层箱数(箱)</th>
+                      <th className="px-4 py-2 text-center font-medium text-[#333] border-r border-[#CCCCCC]">层数(层)</th>
+                      <th className="px-4 py-2 text-center font-medium text-[#333]">每托箱数(箱)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-slate-100">
-                      <td className="px-4 py-2.5 text-slate-700">产品箱</td>
-                      <td className="px-4 py-2.5 font-mono text-slate-700">
-                        {input.box.length} × {input.box.width} × {input.box.height}
+                    <tr className="bg-white">
+                      <td className="px-4 py-2.5 text-center text-[#333] border-r border-[#E5E7EB]">产品箱</td>
+                      <td className="px-4 py-2.5 text-center font-mono text-[#333] border-r border-[#E5E7EB]">
+                        W{input.box.width} × L{input.box.length} × H{input.box.height}
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-slate-700">
+                      <td className="px-4 py-2.5 text-center font-mono text-[#333] border-r border-[#E5E7EB]">
                         {selectedPlan.countAlongLength} × {selectedPlan.countAlongWidth} × {selectedPlan.layers}
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-blue-600 font-semibold">
-                        {selectedPlan.boxesPerLayer} 箱
+                      <td className="px-4 py-2.5 text-center font-mono text-[#3B82F6] font-semibold border-r border-[#E5E7EB]">
+                        {selectedPlan.boxesPerLayer}
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-blue-600 font-semibold">
-                        {selectedPlan.layers} 层
+                      <td className="px-4 py-2.5 text-center font-mono text-[#3B82F6] font-semibold border-r border-[#E5E7EB]">
+                        {selectedPlan.layers}
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-blue-600 font-bold text-base">
-                        {selectedPlan.totalBoxes} 箱
+                      <td className="px-4 py-2.5 text-center font-mono text-[#E03C31] font-bold text-base">
+                        {selectedPlan.totalBoxes}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              {/* 2D排版视图 */}
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">单层箱体排列方式</h3>
-                <LayoutView2D
-                  plan={selectedPlan}
-                  palletLength={input.pallet.length}
-                  palletWidth={input.pallet.width}
-                  palletHeight={input.pallet.height}
-                  productName={input.productName || ""}
-                />
+              {/* 方案选择 + 重新生成 */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {result.plans.length > 1 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {result.plans.map((plan, idx) => (
+                        <button
+                          key={plan.id}
+                          onClick={() => setSelectedPlanIndex(idx)}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                            idx === selectedPlanIndex
+                              ? "bg-[#3B82F6] text-white shadow-sm"
+                              : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                          }`}
+                        >
+                          方案{idx + 1}: {plan.totalBoxes}箱
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={handleCalculate}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 border-[#3B82F6] text-[#3B82F6] hover:bg-[#EFF6FF]"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  重新生成方案
+                </Button>
               </div>
 
-              {/* 3D可视化 + 托盘详情 */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 bg-white border border-slate-200 rounded-lg p-4">
+              {/* 2. 单层箱体排列方式 - 深棕色标题 + 俯视图/侧视图并排 */}
+              <div>
+                <div className="bg-[#5C3924] text-white px-3 py-1.5 rounded text-sm font-bold inline-block mb-3">
+                  单层箱体排列方式
+                </div>
+                <div className="border border-[#E2E8F0] rounded-lg p-4 bg-white">
+                  <LayoutView2D
+                    plan={selectedPlan}
+                    palletLength={input.pallet.length}
+                    palletWidth={input.pallet.width}
+                    palletHeight={input.pallet.height}
+                    productName={input.productName || ""}
+                  />
+                </div>
+              </div>
+
+              {/* 3. 托盘详情 + 成品堆叠效果图 - 左右布局 */}
+              <div className="grid grid-cols-12 gap-5">
+                {/* 左侧：托盘详情 */}
+                <div className="col-span-4">
+                  <div className="bg-[#5C3924] text-white px-3 py-1.5 rounded text-sm font-bold inline-block mb-3">
+                    托盘详情
+                  </div>
+                  <div className="border border-[#E2E8F0] rounded-lg p-4 bg-white">
+                    {/* 托盘3D小图 */}
+                    <div className="mb-3 flex justify-center">
+                      <PalletView3D
+                        plan={selectedPlan}
+                        pallet={input.pallet}
+                        productName={input.productName || ""}
+                        palletOnly={true}
+                      />
+                    </div>
+                    {/* 托盘参数 */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-[#666]">托盘尺寸:</span>
+                        <span className="font-mono text-[#333]">
+                          {input.pallet.width} × {input.pallet.length} × {input.pallet.height} 毫米
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#666]">托盘材质:</span>
+                        <span className="text-[#333]">塑料</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 右侧：成品托盘堆叠效果图 */}
+                <div className="col-span-8">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-slate-700">成品托盘堆叠效果图</h3>
-                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                    <div className="bg-[#5C3924] text-white px-3 py-1.5 rounded text-sm font-bold inline-block">
+                      成品托盘堆叠效果图
+                    </div>
+                    <div className="flex items-center gap-1 bg-[#F1F5F9] rounded p-0.5">
                       <button
                         onClick={() => setViewMode("stacked")}
-                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
                           viewMode === "stacked"
-                            ? "bg-white text-blue-600 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700"
+                            ? "bg-white text-[#3B82F6] shadow-sm"
+                            : "text-[#64748B] hover:text-[#334155]"
                         }`}
                       >
-                        <Package className="h-3.5 w-3.5" />
+                        <Package className="h-3 w-3" />
                         整体视图
                       </button>
                       <button
                         onClick={() => setViewMode("layers")}
-                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
                           viewMode === "layers"
-                            ? "bg-white text-blue-600 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700"
+                            ? "bg-white text-[#3B82F6] shadow-sm"
+                            : "text-[#64748B] hover:text-[#334155]"
                         }`}
                       >
-                        <Layers className="h-3.5 w-3.5" />
+                        <Layers className="h-3 w-3" />
                         分层展示
                       </button>
                     </div>
                   </div>
-                  {viewMode === "stacked" ? (
-                    <PalletView3D
-                      plan={selectedPlan}
-                      pallet={input.pallet}
-                      productName={input.productName || ""}
-                    />
-                  ) : (
-                    <LayerExplodedView
-                      plan={selectedPlan}
-                      pallet={input.pallet}
-                      productName={input.productName || ""}
-                    />
-                  )}
-                </div>
-                <div className="space-y-4">
-                  {/* 托盘详情 */}
-                  <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3">托盘详情</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">尺寸</span>
-                        <span className="font-mono text-slate-700">
-                          {input.pallet.length} × {input.pallet.width} × {input.pallet.height} mm
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">材质</span>
-                        <span className="text-slate-700">塑料</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">类型</span>
-                        <span className="text-slate-700">标准托盘</span>
-                      </div>
-                    </div>
+                  <div className="border border-[#E2E8F0] rounded-lg overflow-hidden bg-white">
+                    {viewMode === "stacked" ? (
+                      <PalletView3D
+                        plan={selectedPlan}
+                        pallet={input.pallet}
+                        productName={input.productName || ""}
+                      />
+                    ) : (
+                      <LayerExplodedView
+                        plan={selectedPlan}
+                        pallet={input.pallet}
+                        productName={input.productName || ""}
+                      />
+                    )}
                   </div>
 
-                  {/* 高度计算明细 */}
-                  <div className="bg-white border border-slate-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3">高度计算明细</h3>
+                  {/* 右侧高度标注信息 - 参考麦斯堆风格 */}
+                  <div className="mt-3 border border-[#E2E8F0] rounded-lg p-4 bg-white">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">托盘高度</span>
-                        <span className="font-mono text-slate-700">{input.pallet.height} mm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">箱体高度</span>
-                        <span className="font-mono text-slate-700">
-                          {selectedPlan.boxStackHeight} mm
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm text-[#333]">托盘总高度</span>
+                        <span className="text-lg font-bold font-mono text-[#E03C31]">
+                          {selectedPlan.totalHeight.toLocaleString()} 毫米
+                        </span>
+                        <span className="text-sm text-[#2385BB]">
+                          (不超过 {input.maxHeight.toLocaleString()} 毫米)
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">堆码层数</span>
-                        <span className="font-mono text-slate-700">× {selectedPlan.layers} 层</span>
+                      <div className="border-t border-[#E5E7EB] pt-2 space-y-1 text-sm text-[#333]">
+                        <div>箱体高度 {selectedPlan.boxStackHeight} 毫米</div>
+                        <div>层数: {selectedPlan.layers} 层</div>
+                        <div className="pl-4 font-mono">= {(selectedPlan.layers * selectedPlan.boxStackHeight).toLocaleString()} 毫米</div>
+                        <div>托盘高度 {input.pallet.height} 毫米</div>
                       </div>
-                      <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-medium">
-                        <span className="text-slate-700">总高度</span>
-                        <span
-                          className={`font-mono font-bold ${
-                            selectedPlan.heightOk ? "text-emerald-600" : "text-amber-600"
-                          }`}
-                        >
-                          {selectedPlan.totalHeight.toLocaleString()} mm
+                      <div className="border-t border-[#E5E7EB] pt-2 flex items-baseline gap-2">
+                        <span className="text-sm text-[#333]">总高度</span>
+                        <span className="text-lg font-bold font-mono text-[#E03C31]">
+                          {selectedPlan.totalHeight.toLocaleString()} 毫米
                         </span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">最大限制</span>
-                        <span className="font-mono text-slate-400">
-                          {input.maxHeight.toLocaleString()} mm
+                        <span className="text-sm text-[#2385BB]">
+                          {selectedPlan.heightOk ? "(符合要求)" : "(超出限制)"}
                         </span>
                       </div>
                     </div>
@@ -300,9 +320,9 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* 信息汇总 */}
+              {/* 4. 信息汇总 - 米色背景 + 绿色勾选 + 两列 */}
               <Summary plan={selectedPlan} input={input} />
-            </>
+            </div>
           )}
         </main>
       </div>

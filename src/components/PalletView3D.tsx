@@ -8,6 +8,7 @@ interface PalletView3DProps {
   plan: PalletPlan;
   pallet: PalletDimensions;
   productName: string;
+  palletOnly?: boolean;
 }
 
 /**
@@ -15,7 +16,7 @@ interface PalletView3DProps {
  * 使用原生Three.js实现，以分米(dm)为单位1:1缩放绘制
  * 模拟专业货运排版软件的写实渲染效果
  */
-export function PalletView3D({ plan, pallet, productName }: PalletView3DProps) {
+export function PalletView3D({ plan, pallet, productName, palletOnly = false }: PalletView3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rendererRef = useRef<any>(null);
@@ -55,8 +56,9 @@ export function PalletView3D({ plan, pallet, productName }: PalletView3DProps) {
 
       // 相机 - 斜侧上方45°视角
       const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 500);
-      const stackH = palletH + plan.layers * mmToDm(plan.boxStackHeight);
-      camera.position.set(palletL * 1.5, stackH * 1.1, palletL * 1.8);
+      const stackH = palletOnly ? palletH : palletH + plan.layers * mmToDm(plan.boxStackHeight);
+      const camDist = palletOnly ? 2.5 : 1.5;
+      camera.position.set(palletL * camDist, stackH * 1.1, palletL * camDist);
       camera.lookAt(0, stackH * 0.45, 0);
 
       // 渲染器
@@ -127,10 +129,12 @@ export function PalletView3D({ plan, pallet, productName }: PalletView3DProps) {
       buildPallet(scene, THREE, palletL, palletW, palletH);
 
       // === 绘制箱体 ===
-      buildBoxes(scene, THREE, plan, palletL, palletW, palletH, productName);
+      if (!palletOnly) {
+        buildBoxes(scene, THREE, plan, palletL, palletW, palletH, productName);
 
-      // === 右侧高度标注线 ===
-      buildHeightAnnotations(scene, THREE, plan, palletL, palletW, palletH, productName);
+        // === 右侧高度标注线 ===
+        buildHeightAnnotations(scene, THREE, plan, palletL, palletW, palletH, productName);
+      }
 
       // 动画循环
       const animate = () => {
