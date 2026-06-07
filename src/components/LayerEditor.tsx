@@ -108,6 +108,28 @@ export function LayerEditor({
             const name = input.productName || '';
             ctx.fillText(name.slice(0, Math.floor(bw / 8)), drawX + bw / 2, drawY + bh / 2, bw - 4);
           }
+
+          // 长/宽边标注 — 只在第一段的第一个箱体上标注（避免重复）
+          if (si === 0 && row === 0 && col === 0 && bw > 20 && bh > 15) {
+            ctx.save();
+            // 长边标注 — 沿箱体上边（沿托盘长度方向）
+            ctx.fillStyle = '#3B82F6';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`长(L)`, drawX + bw / 2, drawY - 1);
+
+            // 宽边标注 — 沿箱体左边（沿托盘宽度方向）
+            ctx.save();
+            ctx.translate(drawX - 1, drawY + bh / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(`宽(W)`, 0, 0);
+            ctx.restore();
+
+            ctx.restore();
+          }
         }
       }
       currentY += section.countAlongWidth * bW;
@@ -122,7 +144,7 @@ export function LayerEditor({
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(`${input.pallet.length} mm`, ox + palletL * scale / 2, oy + palletW * scale + 6);
+    ctx.fillText(`${input.pallet.length}(L) mm`, ox + palletL * scale / 2, oy + palletW * scale + 6);
 
     // 产品占用长度标注（托盘下方第二条线）
     const coverageLDraw = (coverageL / input.pallet.length) * palletL * scale;
@@ -148,7 +170,7 @@ export function LayerEditor({
     ctx.translate(ox - 6, oy + palletW * scale / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textBaseline = 'top';
-    ctx.fillText(`${input.pallet.width} mm`, 0, 0);
+    ctx.fillText(`${input.pallet.width}(W) mm`, 0, 0);
     ctx.restore();
 
     // 产品占用宽度标注（左侧第二条线）

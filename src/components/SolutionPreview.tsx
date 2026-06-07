@@ -126,7 +126,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       currentY += section.countAlongWidth * bW;
     });
 
-    // 高度标注
+    // 高度(H)标注
     const totalH = palletH + totalLayers * boxH;
     const [lx, ly] = toIso(palletL + 1, 0, 0);
     const [tx2, ty2] = toIso(palletL + 1, 0, totalH);
@@ -139,7 +139,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     ctx.lineTo(cx + tx2 * scale, cy + ty2 * scale);
     ctx.stroke();
 
-    // 总高度文字
+    // 总高度(H)文字
     const totalHmm = input.pallet.height + totalLayers * plan.boxStackHeight;
     ctx.fillStyle = '#DC2626';
     ctx.font = 'bold 14px sans-serif';
@@ -296,7 +296,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
             <div className="text-lg font-bold text-blue-600">{totalBoxes}</div>
           </div>
           <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-100">
-            <div className="text-[10px] text-slate-500">总高度</div>
+            <div className="text-[10px] text-slate-500">总高度(H)</div>
             <div className={`text-lg font-bold ${heightOk ? 'text-emerald-600' : 'text-amber-600'}`}>{totalH.toLocaleString()} mm</div>
           </div>
           <div className="bg-white rounded-lg p-2 shadow-sm border border-slate-100">
@@ -348,36 +348,36 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
 
       {/* 合规检查 */}
       <div className="p-3 border-t border-slate-200 space-y-1.5">
-        {/* 高度检查 */}
+        {/* 高度(H)检查 */}
         <div className="flex items-center gap-2 text-xs">
           {heightOk ? (
-            <><span className="text-emerald-500">✓</span><span className="text-emerald-700">高度 {totalH.toLocaleString()}mm ≤ {input.maxHeight.toLocaleString()}mm 限制</span></>
+            <><span className="text-emerald-500">✓</span><span className="text-emerald-700">高度(H) {totalH.toLocaleString()}mm ≤ {input.maxHeight.toLocaleString()}mm 限制</span></>
           ) : (
-            <><span className="text-amber-500">⚠</span><span className="text-amber-700">高度 {totalH.toLocaleString()}mm &gt; {input.maxHeight.toLocaleString()}mm 限制</span></>
+            <><span className="text-amber-500">⚠</span><span className="text-amber-700">高度(H) {totalH.toLocaleString()}mm &gt; {input.maxHeight.toLocaleString()}mm 限制</span></>
           )}
         </div>
-        {/* 长度对比 */}
+        {/* 长度(L)对比 */}
         {(() => {
           const diffL = input.pallet.length - plan.coverageLength;
           return (
             <div className="flex items-center gap-2 text-xs">
               {diffL >= 0 ? (
-                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">长度: 产品占 {plan.coverageLength}mm，托盘 {input.pallet.length}mm，剩余 {diffL}mm</span></>
+                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">长度(L): 产品占 {plan.coverageLength}mm，托盘 {input.pallet.length}mm，剩余 {diffL}mm</span></>
               ) : (
-                <><span className="text-amber-500">⚠</span><span className="text-amber-700">长度: 产品占 {plan.coverageLength}mm，超出托盘 {Math.abs(diffL)}mm</span></>
+                <><span className="text-amber-500">⚠</span><span className="text-amber-700">长度(L): 产品占 {plan.coverageLength}mm，超出托盘 {Math.abs(diffL)}mm</span></>
               )}
             </div>
           );
         })()}
-        {/* 宽度对比 */}
+        {/* 宽度(W)对比 */}
         {(() => {
           const diffW = input.pallet.width - plan.coverageWidth;
           return (
             <div className="flex items-center gap-2 text-xs">
               {diffW >= 0 ? (
-                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">宽度: 产品占 {plan.coverageWidth}mm，托盘 {input.pallet.width}mm，剩余 {diffW}mm</span></>
+                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">宽度(W): 产品占 {plan.coverageWidth}mm，托盘 {input.pallet.width}mm，剩余 {diffW}mm</span></>
               ) : (
-                <><span className="text-amber-500">⚠</span><span className="text-amber-700">宽度: 产品占 {plan.coverageWidth}mm，超出托盘 {Math.abs(diffW)}mm</span></>
+                <><span className="text-amber-500">⚠</span><span className="text-amber-700">宽度(W): 产品占 {plan.coverageWidth}mm，超出托盘 {Math.abs(diffW)}mm</span></>
               )}
             </div>
           );
