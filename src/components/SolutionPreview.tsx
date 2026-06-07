@@ -180,91 +180,172 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       return [(x - y) * cos30, (x + y) * sin30 - z];
     }
 
+    // 绘制3D箱体的三个可见面
+    function draw3DBox(bx: number, by: number, bz: number, bw: number, bd: number, bh: number,
+      topColor: string, frontColor: string, sideColor: string, strokeC: string, lineW = 0.5) {
+      // 顶面
+      const [t1x, t1y] = toIso(bx, by, bz + bh);
+      const [t2x, t2y] = toIso(bx + bw, by, bz + bh);
+      const [t3x, t3y] = toIso(bx + bw, by + bd, bz + bh);
+      const [t4x, t4y] = toIso(bx, by + bd, bz + bh);
+      ctx.beginPath();
+      ctx.moveTo(tx(t1x), ty(t1y)); ctx.lineTo(tx(t2x), ty(t2y));
+      ctx.lineTo(tx(t3x), ty(t3y)); ctx.lineTo(tx(t4x), ty(t4y));
+      ctx.closePath();
+      ctx.fillStyle = topColor; ctx.fill();
+      ctx.strokeStyle = strokeC; ctx.lineWidth = lineW; ctx.stroke();
+
+      // 正面 (y=0 面, 靠近观察者)
+      const [f1x, f1y] = toIso(bx, by, bz);
+      const [f2x, f2y] = toIso(bx + bw, by, bz);
+      ctx.beginPath();
+      ctx.moveTo(tx(f1x), ty(f1y)); ctx.lineTo(tx(f2x), ty(f2y));
+      ctx.lineTo(tx(t2x), ty(t2y)); ctx.lineTo(tx(t1x), ty(t1y));
+      ctx.closePath();
+      ctx.fillStyle = frontColor; ctx.fill();
+      ctx.strokeStyle = strokeC; ctx.lineWidth = lineW; ctx.stroke();
+
+      // 右侧面 (x=max 面)
+      const [r1x, r1y] = toIso(bx + bw, by, bz);
+      const [r2x, r2y] = toIso(bx + bw, by + bd, bz);
+      ctx.beginPath();
+      ctx.moveTo(tx(r1x), ty(r1y)); ctx.lineTo(tx(r2x), ty(r2y));
+      ctx.lineTo(tx(t3x), ty(t3y)); ctx.lineTo(tx(t2x), ty(t2y));
+      ctx.closePath();
+      ctx.fillStyle = sideColor; ctx.fill();
+      ctx.strokeStyle = strokeC; ctx.lineWidth = lineW; ctx.stroke();
+    }
+
     const maxExt = Math.max(truckL, truckW, truckH);
-    const sc = Math.min(displayW * 0.3, displayH * 0.3) / maxExt;
-    const cx = displayW * 0.4;
-    const cy = displayH * 0.75;
+    const sc = Math.min(displayW * 0.28, displayH * 0.28) / maxExt;
+    const cx = displayW * 0.42;
+    const cy = displayH * 0.72;
 
     const tx = (v: number) => cx + v * sc;
     const ty = (v: number) => cy + v * sc;
 
-    // 卡车外框
-    const [a1, b1] = toIso(0, 0, 0);
-    const [a2, b2] = toIso(truckL, 0, 0);
-    const [a3, b3] = toIso(truckL, truckW, 0);
-    const [a4, b4] = toIso(0, truckW, 0);
-    const [a5, b5] = toIso(0, 0, truckH);
+    // --- 卡车车厢 3D 外壳 ---
+    // 车厢底部离地面一点高度，模拟底盘
+    const chassisH = truckH * 0.08;
+    // 车厢主体
+    const boxTop = truckH;
+    // 驾驶室占车厢长度的15%
+    const cabL = truckL * 0.15;
+    const cargoL = truckL - cabL;
+    const cabH = truckH * 0.6;
 
-    // 地面
+    // 底盘
+    draw3DBox(0, 0, 0, truckL, truckW, chassisH, '#374151', '#1F2937', '#111827', '#0F172A', 1);
+
+    // 驾驶室
+    draw3DBox(0, 0, chassisH, cabL, truckW, cabH, '#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8', 1);
+
+    // 车厢（货箱）— 半透明显示内部
+    // 先画背面和底面框架
+    const [a1, b1] = toIso(cabL, 0, chassisH);
+    const [a2, b2] = toIso(truckL, 0, chassisH);
+    const [a3, b3] = toIso(truckL, truckW, chassisH);
+    const [a4, b4] = toIso(cabL, truckW, chassisH);
+    const [a5, b5] = toIso(cabL, 0, boxTop);
+    const [a6, b6] = toIso(truckL, 0, boxTop);
+    const [a7, b7] = toIso(truckL, truckW, boxTop);
+    const [a8, b8] = toIso(cabL, truckW, boxTop);
+
+    // 车厢底面
     ctx.beginPath();
     ctx.moveTo(tx(a1), ty(b1)); ctx.lineTo(tx(a2), ty(b2));
     ctx.lineTo(tx(a3), ty(b3)); ctx.lineTo(tx(a4), ty(b4));
     ctx.closePath();
-    ctx.fillStyle = '#F1F5F9';
-    ctx.fill();
-    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#94A3B8'; ctx.fill();
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 0.8; ctx.stroke();
 
-    // 侧面线
-    ctx.beginPath();
-    ctx.moveTo(tx(a1), ty(b1)); ctx.lineTo(tx(a5), ty(b5));
-    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1; ctx.stroke();
-
-    const [a6, b6] = toIso(truckL, 0, truckH);
-    ctx.beginPath();
-    ctx.moveTo(tx(a2), ty(b2));
-    ctx.lineTo(tx(a6), ty(b6));
-    ctx.stroke();
-
-    const [a7, b7] = toIso(0, truckW, truckH);
-    ctx.beginPath();
-    ctx.moveTo(tx(a4), ty(b4));
-    ctx.lineTo(tx(a7), ty(b7));
-    ctx.stroke();
-
-    // 托盘
+    // 托盘 — 先画，在车厢框架内
     for (let row = 0; row < truckLoad.rows; row++) {
       for (let col = 0; col < truckLoad.palletsPerRow; col++) {
-        const px = row * palletL + 0.1;
-        const py = col * palletW + 0.1;
-        const [p1x, p1y] = toIso(px, py, 0);
-        const [p2x, p2y] = toIso(px + palletL - 0.2, py, 0);
-        const [p3x, p3y] = toIso(px + palletL - 0.2, py + palletW - 0.2, 0);
-        const [p4x, p4y] = toIso(px, py + palletW - 0.2, 0);
-
-        ctx.beginPath();
-        ctx.moveTo(tx(p1x), ty(p1y)); ctx.lineTo(tx(p2x), ty(p2y));
-        ctx.lineTo(tx(p3x), ty(p3y)); ctx.lineTo(tx(p4x), ty(p4y));
-        ctx.closePath();
-        ctx.fillStyle = input.boxColor || '#C4A882';
-        ctx.globalAlpha = 0.7;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.5; ctx.stroke();
-
-        // 托盘顶部线
-        const [t1x, t1y] = toIso(px, py, palletH_d);
-        const [t2x, t2y] = toIso(px + palletL - 0.2, py, palletH_d);
-        const [t3x, t3y] = toIso(px + palletL - 0.2, py + palletW - 0.2, palletH_d);
-        const [t4x, t4y] = toIso(px, py + palletW - 0.2, palletH_d);
-        ctx.beginPath();
-        ctx.moveTo(tx(t1x), ty(t1y)); ctx.lineTo(tx(t2x), ty(t2y));
-        ctx.lineTo(tx(t3x), ty(t3y)); ctx.lineTo(tx(t4x), ty(t4y));
-        ctx.closePath();
-        ctx.fillStyle = adjustBrightness(input.boxColor || '#C4A882', 10);
-        ctx.globalAlpha = 0.5;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.3; ctx.stroke();
+        const px = cabL + 0.1 + row * palletL;
+        const py = 0.1 + col * palletW;
+        const baseColor = input.boxColor || '#C4A882';
+        draw3DBox(
+          px, py, chassisH + 0.05,
+          palletL - 0.2, palletW - 0.2, palletH_d - 0.1,
+          adjustBrightness(baseColor, 15),
+          adjustBrightness(baseColor, -10),
+          adjustBrightness(baseColor, -25),
+          '#8B7355', 0.4
+        );
       }
     }
 
-    // 卡车名称
+    // 车厢侧面线框 (半透明)
+    ctx.globalAlpha = 0.35;
+    // 左侧面 (y=0)
+    ctx.beginPath();
+    ctx.moveTo(tx(a1), ty(b1)); ctx.lineTo(tx(a2), ty(b2));
+    ctx.lineTo(tx(a6), ty(b6)); ctx.lineTo(tx(a5), ty(b5));
+    ctx.closePath();
+    ctx.fillStyle = '#CBD5E1'; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 1.2; ctx.stroke();
+
+    ctx.globalAlpha = 0.2;
+    // 右侧面 (x=truckL)
+    ctx.beginPath();
+    ctx.moveTo(tx(a2), ty(b2)); ctx.lineTo(tx(a3), ty(b3));
+    ctx.lineTo(tx(a7), ty(b7)); ctx.lineTo(tx(a6), ty(b6));
+    ctx.closePath();
+    ctx.fillStyle = '#CBD5E1'; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 1.2; ctx.stroke();
+
+    // 顶面 (半透明)
+    ctx.globalAlpha = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(tx(a5), ty(b5)); ctx.lineTo(tx(a6), ty(b6));
+    ctx.lineTo(tx(a7), ty(b7)); ctx.lineTo(tx(a8), ty(b8));
+    ctx.closePath();
+    ctx.fillStyle = '#E2E8F0'; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // 车厢后侧竖线
+    ctx.beginPath();
+    ctx.moveTo(tx(a3), ty(b3)); ctx.lineTo(tx(a7), ty(b7));
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(tx(a4), ty(b4)); ctx.lineTo(tx(a8), ty(b8));
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // 后面 (y=truckW, 半透明)
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.moveTo(tx(a4), ty(b4)); ctx.lineTo(tx(a3), ty(b3));
+    ctx.lineTo(tx(a7), ty(b7)); ctx.lineTo(tx(a8), ty(b8));
+    ctx.closePath();
+    ctx.fillStyle = '#CBD5E1'; ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#64748B'; ctx.lineWidth = 0.8; ctx.stroke();
+
+    // 尺寸标注 — 车厢长度
+    const [lx1, ly1] = toIso(cabL, -0.3, 0);
+    const [lx2, ly2] = toIso(truckL, -0.3, 0);
+    ctx.strokeStyle = '#3B82F6'; ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(tx(lx1), ty(ly1)); ctx.lineTo(tx(lx2), ty(ly2)); ctx.stroke();
+    ctx.fillStyle = '#3B82F6'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${input.truck.length}mm`, (tx(lx1) + tx(lx2)) / 2, ty(ly1) + 12);
+
+    // 车辆名称
     ctx.fillStyle = '#1E293B';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(input.truck.name, displayW / 2, 16);
 
-  }, [truckLoad, input, plan]);
+    // 装载信息
+    ctx.fillStyle = '#64748B';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(`${truckLoad.totalPallets} 托盘 / ${truckLoad.totalPallets * plan.boxesPerLayer * layers} 箱`, displayW / 2, 30);
+
+  }, [truckLoad, input, plan, layers]);
 
   useEffect(() => {
     if (viewMode === 'pallet') drawPalletView();

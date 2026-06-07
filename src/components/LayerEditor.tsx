@@ -99,35 +99,17 @@ export function LayerEditor({
           ctx.lineWidth = 0.8;
           ctx.strokeRect(drawX, drawY, bw, bh);
 
-          // 产品名 (如果空间足够)
-          if (bw > 30 && bh > 15) {
-            ctx.fillStyle = '#3E2723';
-            ctx.font = `${Math.min(9, bh * 0.35)}px sans-serif`;
+          // L/W 标注 — 每个箱体上标记方向
+          if (bw > 20 && bh > 15) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(30,41,59,0.55)';
+            ctx.font = `bold ${Math.min(9, bw * 0.12)}px ui-monospace, monospace`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const name = input.productName || '';
-            ctx.fillText(name.slice(0, Math.floor(bw / 8)), drawX + bw / 2, drawY + bh / 2, bw - 4);
-          }
-
-          // 长/宽边标注 — 只在第一段的第一个箱体上标注（避免重复）
-          if (si === 0 && row === 0 && col === 0 && bw > 20 && bh > 15) {
-            ctx.save();
-            // 长边标注 — 沿箱体上边（沿托盘长度方向）
-            ctx.fillStyle = '#3B82F6';
-            ctx.font = 'bold 9px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(`长(L)`, drawX + bw / 2, drawY - 1);
-
-            // 宽边标注 — 沿箱体左边（沿托盘宽度方向）
-            ctx.save();
-            ctx.translate(drawX - 1, drawY + bh / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(`宽(W)`, 0, 0);
-            ctx.restore();
-
+            // L 标注在箱体长度方向中央
+            ctx.fillText('L', drawX + bw / 2, drawY + bh / 2 - bh * 0.18, bw * 0.6);
+            // W 标注在箱体宽度方向中央
+            ctx.fillText('W', drawX + bw / 2, drawY + bh / 2 + bh * 0.22, bw * 0.6);
             ctx.restore();
           }
         }
