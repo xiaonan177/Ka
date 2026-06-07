@@ -99,18 +99,14 @@ export function LayerEditor({
           ctx.lineWidth = 0.8;
           ctx.strokeRect(drawX, drawY, bw, bh);
 
-          // L/W 标注 — 每个箱体上标记方向
-          if (bw > 20 && bh > 15) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(30,41,59,0.55)';
-            ctx.font = `bold ${Math.min(9, bw * 0.12)}px ui-monospace, monospace`;
+          // 产品名 (如果空间足够)
+          if (bw > 30 && bh > 15) {
+            ctx.fillStyle = '#3E2723';
+            ctx.font = `${Math.min(9, bh * 0.35)}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            // L 标注在箱体长度方向中央
-            ctx.fillText('L', drawX + bw / 2, drawY + bh / 2 - bh * 0.18, bw * 0.6);
-            // W 标注在箱体宽度方向中央
-            ctx.fillText('W', drawX + bw / 2, drawY + bh / 2 + bh * 0.22, bw * 0.6);
-            ctx.restore();
+            const name = input.productName || '';
+            ctx.fillText(name.slice(0, Math.floor(bw / 8)), drawX + bw / 2, drawY + bh / 2, bw - 4);
           }
         }
       }
@@ -126,7 +122,7 @@ export function LayerEditor({
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(`${input.pallet.length}(L) mm`, ox + palletL * scale / 2, oy + palletW * scale + 6);
+    ctx.fillText(`${input.pallet.length} mm`, ox + palletL * scale / 2, oy + palletW * scale + 6);
 
     // 产品占用长度标注（托盘下方第二条线）
     const coverageLDraw = (coverageL / input.pallet.length) * palletL * scale;
@@ -152,7 +148,7 @@ export function LayerEditor({
     ctx.translate(ox - 6, oy + palletW * scale / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textBaseline = 'top';
-    ctx.fillText(`${input.pallet.width}(W) mm`, 0, 0);
+    ctx.fillText(`${input.pallet.width} mm`, 0, 0);
     ctx.restore();
 
     // 产品占用宽度标注（左侧第二条线）

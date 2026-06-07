@@ -72,15 +72,15 @@ export function InputForm({ input, onChange, onCalculate }: InputFormProps) {
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-slate-500">长(L) mm</label>
+                <label className="text-xs text-slate-500">长 mm</label>
                 <input type="number" value={input.box.length || ''} onChange={e => update({ box: { ...input.box, length: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
               </div>
               <div>
-                <label className="text-xs text-slate-500">宽(W) mm</label>
+                <label className="text-xs text-slate-500">宽 mm</label>
                 <input type="number" value={input.box.width || ''} onChange={e => update({ box: { ...input.box, width: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
               </div>
               <div>
-                <label className="text-xs text-slate-500">高(H) mm</label>
+                <label className="text-xs text-slate-500">高 mm</label>
                 <input type="number" value={input.box.height || ''} onChange={e => update({ box: { ...input.box, height: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
               </div>
             </div>
@@ -114,15 +114,15 @@ export function InputForm({ input, onChange, onCalculate }: InputFormProps) {
             <div className="mt-2 space-y-2 p-2 bg-slate-50 rounded">
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-xs text-slate-500">长(L)</label>
+                  <label className="text-xs text-slate-500">长</label>
                   <input type="number" value={input.caseBox.length || ''} onChange={e => update({ caseBox: { ...input.caseBox, length: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500">宽(W)</label>
+                  <label className="text-xs text-slate-500">宽</label>
                   <input type="number" value={input.caseBox.width || ''} onChange={e => update({ caseBox: { ...input.caseBox, width: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500">高(H)</label>
+                  <label className="text-xs text-slate-500">高</label>
                   <input type="number" value={input.caseBox.height || ''} onChange={e => update({ caseBox: { ...input.caseBox, height: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
                 </div>
               </div>
@@ -147,15 +147,15 @@ export function InputForm({ input, onChange, onCalculate }: InputFormProps) {
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-slate-500">长(L)</label>
+                <label className="text-xs text-slate-500">长</label>
                 <input type="number" value={input.pallet.length || ''} onChange={e => update({ pallet: { ...input.pallet, length: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
               </div>
               <div>
-                <label className="text-xs text-slate-500">宽(W)</label>
+                <label className="text-xs text-slate-500">宽</label>
                 <input type="number" value={input.pallet.width || ''} onChange={e => update({ pallet: { ...input.pallet, width: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
               </div>
               <div>
-                <label className="text-xs text-slate-500">高(H)</label>
+                <label className="text-xs text-slate-500">高</label>
                 <input type="number" value={input.pallet.height || ''} onChange={e => update({ pallet: { ...input.pallet, height: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
               </div>
             </div>
@@ -187,15 +187,15 @@ export function InputForm({ input, onChange, onCalculate }: InputFormProps) {
                   return (
                     <div className="grid grid-cols-3 gap-2 p-2 bg-slate-50 rounded">
                       <div>
-                        <label className="text-xs text-slate-500">长(L)</label>
+                        <label className="text-xs text-slate-500">长</label>
                         <input type="number" value={t.length} onChange={e => update({ truck: { ...t, length: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
                       </div>
                       <div>
-                        <label className="text-xs text-slate-500">宽(W)</label>
+                        <label className="text-xs text-slate-500">宽</label>
                         <input type="number" value={t.width} onChange={e => update({ truck: { ...t, width: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
                       </div>
                       <div>
-                        <label className="text-xs text-slate-500">高(H)</label>
+                        <label className="text-xs text-slate-500">高</label>
                         <input type="number" value={t.height} onChange={e => update({ truck: { ...t, height: Number(e.target.value) } })} className="w-full border border-slate-300 rounded px-2 py-1 text-sm" />
                       </div>
                     </div>

@@ -173,7 +173,7 @@ function drawTitleBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 function drawParamTable(ctx: CanvasRenderingContext2D, x: number, y: number, plan: PalletPlan, box: BoxDimensions): number {
   const cols = [
     { header: '箱体类型', value: '产品箱', w: 100 },
-    { header: '箱体尺寸(长×宽×高 毫米)', value: `L${box.length} × W${box.width} × H${box.height}`, w: 300 },
+    { header: '箱体尺寸(长×宽×高 毫米)', value: `W${box.width} × L${box.length} × H${box.height}`, w: 300 },
     { header: '堆码方式(长×宽×高)', value: `${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`, w: 210 },
     { header: '每层箱数(箱)', value: String(plan.boxesPerLayer), w: 140 },
     { header: '层数(层)', value: String(plan.layers), w: 100 },
@@ -227,7 +227,7 @@ function drawTopView(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.fillStyle = C.black;
   ctx.font = '13px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`排列方式: ${plan.countAlongLength}(L) × ${plan.countAlongWidth}(W) (俯视图)`, x + w / 2, y + 16);
+  ctx.fillText(`排列方式: ${plan.countAlongLength} × ${plan.countAlongWidth} (俯视图)`, x + w / 2, y + 16);
 
   const drawY = y + 24;
   const drawH = h - 44;
@@ -314,9 +314,9 @@ function drawTopView(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
 
   // 尺寸标注
   const annotY = oy + drawPW + 18;
-  drawDimLine(ctx, ox, annotY, ox + drawPL, annotY, `${plan.coverageLength}(L) 毫米`, 'bottom');
+  drawDimLine(ctx, ox, annotY, ox + drawPL, annotY, `${plan.coverageLength} 毫米`, 'bottom');
   const annotX = ox - 18;
-  drawDimLine(ctx, annotX, oy, annotX, oy + drawPW, `${plan.coverageWidth}(W) 毫米`, 'left');
+  drawDimLine(ctx, annotX, oy, annotX, oy + drawPW, `${plan.coverageWidth} 毫米`, 'left');
 }
 
 /** 绘制侧视图 */
@@ -385,8 +385,8 @@ function drawSideView(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   }
 
   // 标注
-  drawDimLine(ctx, ox, oy + palletDrawH + 16, ox + drawBW * count, oy + palletDrawH + 16, `${totalBoxW}(L) 毫米`, 'bottom');
-  drawDimLine(ctx, ox - 16, oy - drawBH, ox - 16, oy, `${boxH}(H) 毫米`, 'left');
+  drawDimLine(ctx, ox, oy + palletDrawH + 16, ox + drawBW * count, oy + palletDrawH + 16, `${totalBoxW} 毫米`, 'bottom');
+  drawDimLine(ctx, ox - 16, oy - drawBH, ox - 16, oy, `${boxH} 毫米`, 'left');
 }
 
 /** 绘制托盘详情 */
@@ -462,18 +462,18 @@ function drawPalletDetail(ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.fillStyle = C.black;
   ctx.font = '14px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText(`托盘尺寸: ${pallet.width}(W) × ${pallet.length}(L) × ${pallet.height}(H) 毫米`, textX, y + 50);
+  ctx.fillText(`托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`, textX, y + 50);
   ctx.fillText(`托盘材质: 塑料`, textX, y + 75);
 
   // 蓝色标注线
   const bottomPt = iso(0, sW, 0);
-  drawDimLine(ctx, bottomPt[0], bottomPt[1] + 18, bottomPt[0] + sL * cosA, bottomPt[1] + 18 + sL * sinA, `${pallet.length}(L) 毫米`, 'bottom');
+  drawDimLine(ctx, bottomPt[0], bottomPt[1] + 18, bottomPt[0] + sL * cosA, bottomPt[1] + 18 + sL * sinA, `${pallet.length} 毫米`, 'bottom');
 
   const rightPt = iso(sL, 0, 0);
-  drawDimLine(ctx, rightPt[0] + 12, rightPt[1], rightPt[0] + 12 + sW * cosA, rightPt[1] + sW * sinA, `${pallet.width}(W) 毫米`, 'bottom');
+  drawDimLine(ctx, rightPt[0] + 12, rightPt[1], rightPt[0] + 12 + sW * cosA, rightPt[1] + sW * sinA, `${pallet.width} 毫米`, 'bottom');
 
   const topPt = iso(sL, 0, sH);
-  drawDimLine(ctx, topPt[0] + 12, topPt[1], topPt[0] + 12, topPt[1] + sH, `${pallet.height}(H) 毫米`, 'right');
+  drawDimLine(ctx, topPt[0] + 12, topPt[1], topPt[0] + 12, topPt[1] + sH, `${pallet.height} 毫米`, 'right');
 }
 
 /** 绘制成品堆叠效果图 */
@@ -692,19 +692,19 @@ function drawHeightAnnotation(ctx: CanvasRenderingContext2D, x: number, y: numbe
   // 分项
   ctx.fillStyle = C.black;
   ctx.font = '13px "Microsoft YaHei", sans-serif';
-  ctx.fillText(`箱体高度(H) ${plan.boxStackHeight} 毫米`, x + 28, ty);
+  ctx.fillText(`箱体高度 ${plan.boxStackHeight} 毫米`, x + 28, ty);
   ty += 22;
   ctx.fillText(`层数: ${plan.layers} 层`, x + 28, ty);
   ty += 22;
   ctx.fillText(`= ${boxTotalH} 毫米`, x + 28, ty);
   ty += 30;
-  ctx.fillText(`托盘高度(H) ${palletH} 毫米`, x + 28, ty);
+  ctx.fillText(`托盘高度 ${palletH} 毫米`, x + 28, ty);
   ty += 40;
 
   // 总高度确认
   ctx.fillStyle = C.black;
   ctx.font = '14px "Microsoft YaHei", sans-serif';
-  ctx.fillText('总高度(H)', x + 28, ty);
+  ctx.fillText('总高度', x + 28, ty);
   ty += 24;
 
   ctx.fillStyle = C.red;
@@ -738,7 +738,7 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   const widthDiff = pallet.width - plan.coverageWidth;
 
   const leftItems = [
-    `箱体尺寸: L${plan.originalBox.length} × W${plan.originalBox.width} × H${plan.originalBox.height} 毫米`,
+    `箱体尺寸: ${plan.originalBox.width} × ${plan.originalBox.length} × ${plan.originalBox.height} 毫米`,
     `堆码方式: ${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`,
     `每层箱数: ${plan.boxesPerLayer} 箱`,
     `层数: ${plan.layers} 层`,
@@ -746,9 +746,9 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   const rightItems = [
     `每托箱数: ${plan.totalBoxes} 箱`,
     `托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`,
-    `长度(L): 产品占${plan.coverageLength}mm${lengthDiff >= 0 ? `，余${lengthDiff}mm` : `，超${Math.abs(lengthDiff)}mm`}`,
-    `宽度(W): 产品占${plan.coverageWidth}mm${widthDiff >= 0 ? `，余${widthDiff}mm` : `，超${Math.abs(widthDiff)}mm`}`,
-    `托盘总高度(H): ${plan.totalHeight} 毫米 (不超过 ${maxHeight} 毫米)`,
+    `长度: 产品占${plan.coverageLength}mm${lengthDiff >= 0 ? `，余${lengthDiff}mm` : `，超${Math.abs(lengthDiff)}mm`}`,
+    `宽度: 产品占${plan.coverageWidth}mm${widthDiff >= 0 ? `，余${widthDiff}mm` : `，超${Math.abs(widthDiff)}mm`}`,
+    `托盘总高度: ${plan.totalHeight} 毫米 (不超过 ${maxHeight} 毫米)`,
     `可使用标准运输及仓储设备作业`,
   ];
 
