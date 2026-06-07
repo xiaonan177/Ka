@@ -162,7 +162,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     canvas.height = displayH * dpr;
     ctx.scale(dpr, dpr);
 
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = '#FAFAFA';
     ctx.fillRect(0, 0, displayW, displayH);
 
     const truckL = mmToDm(input.truck.length);
@@ -170,203 +170,101 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     const truckH = mmToDm(input.truck.height);
     const palletL = mmToDm(input.pallet.length);
     const palletW = mmToDm(input.pallet.width);
-    const palletH = mmToDm(input.pallet.height);
-    const boxH = mmToDm(plan.boxStackHeight);
-    const totalLayers = layers;
-    const palletTotalH = palletH + totalLayers * boxH;
+    const palletH_d = mmToDm(plan.totalHeight);
 
     const isoAngle = Math.PI / 6;
-    const cosA = Math.cos(isoAngle);
-    const sinA = Math.sin(isoAngle);
+    const cos30 = Math.cos(isoAngle);
+    const sin30 = Math.sin(isoAngle);
 
     function toIso(x: number, y: number, z: number): [number, number] {
-      return [(x - y) * cosA, (x + y) * sinA - z];
+      return [(x - y) * cos30, (x + y) * sin30 - z];
     }
 
     const maxExt = Math.max(truckL, truckW, truckH);
-    const sc = Math.min(displayW * 0.28, displayH * 0.28) / maxExt;
-    const cx = displayW * 0.42;
-    const cy = displayH * 0.82;
+    const sc = Math.min(displayW * 0.3, displayH * 0.3) / maxExt;
+    const cx = displayW * 0.4;
+    const cy = displayH * 0.75;
 
-    const px = (v: number) => cx + v * sc;
-    const py = (v: number) => cy + v * sc;
+    const tx = (v: number) => cx + v * sc;
+    const ty = (v: number) => cy + v * sc;
 
-    // ===== 绘制等轴测长方体面 =====
-    function drawIsoFace(points: [number, number][], fill: string, stroke: string, lineWidth: number = 0.8) {
-      ctx.beginPath();
-      ctx.moveTo(px(points[0][0]), py(points[0][1]));
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(px(points[i][0]), py(points[i][1]));
-      }
-      ctx.closePath();
-      ctx.fillStyle = fill;
-      ctx.fill();
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = lineWidth;
-      ctx.stroke();
-    }
+    // 卡车外框
+    const [a1, b1] = toIso(0, 0, 0);
+    const [a2, b2] = toIso(truckL, 0, 0);
+    const [a3, b3] = toIso(truckL, truckW, 0);
+    const [a4, b4] = toIso(0, truckW, 0);
+    const [a5, b5] = toIso(0, 0, truckH);
 
-    // ===== 绘制等轴测箱体（顶面+正面+右面） =====
-    function drawIsoBox(bx: number, by: number, bz: number, bw: number, bd: number, bh: number, topColor: string, frontColor: string, sideColor: string, strokeColor: string) {
-      // 顶面
-      drawIsoFace([
-        toIso(bx, by, bz + bh),
-        toIso(bx + bw, by, bz + bh),
-        toIso(bx + bw, by + bd, bz + bh),
-        toIso(bx, by + bd, bz + bh),
-      ], topColor, strokeColor, 0.5);
+    // 地面
+    ctx.beginPath();
+    ctx.moveTo(tx(a1), ty(b1)); ctx.lineTo(tx(a2), ty(b2));
+    ctx.lineTo(tx(a3), ty(b3)); ctx.lineTo(tx(a4), ty(b4));
+    ctx.closePath();
+    ctx.fillStyle = '#F1F5F9';
+    ctx.fill();
+    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1.5; ctx.stroke();
 
-      // 正面 (y=by)
-      drawIsoFace([
-        toIso(bx, by, bz),
-        toIso(bx + bw, by, bz),
-        toIso(bx + bw, by, bz + bh),
-        toIso(bx, by, bz + bh),
-      ], frontColor, strokeColor, 0.5);
+    // 侧面线
+    ctx.beginPath();
+    ctx.moveTo(tx(a1), ty(b1)); ctx.lineTo(tx(a5), ty(b5));
+    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1; ctx.stroke();
 
-      // 右侧面 (x=bx+bw)
-      drawIsoFace([
-        toIso(bx + bw, by, bz),
-        toIso(bx + bw, by + bd, bz),
-        toIso(bx + bw, by + bd, bz + bh),
-        toIso(bx + bw, by, bz + bh),
-      ], sideColor, strokeColor, 0.5);
-    }
+    const [a6, b6] = toIso(truckL, 0, truckH);
+    ctx.beginPath();
+    ctx.moveTo(tx(a2), ty(b2));
+    ctx.lineTo(tx(a6), ty(b6));
+    ctx.stroke();
 
-    // ===== 1. 车厢底面（浅冷灰+网格） =====
-    const floorColor = '#E2E8F0';
-    const floorStroke = '#94A3B8';
-    drawIsoFace([
-      toIso(0, 0, 0), toIso(truckL, 0, 0),
-      toIso(truckL, truckW, 0), toIso(0, truckW, 0),
-    ], floorColor, floorStroke, 1.5);
+    const [a7, b7] = toIso(0, truckW, truckH);
+    ctx.beginPath();
+    ctx.moveTo(tx(a4), ty(b4));
+    ctx.lineTo(tx(a7), ty(b7));
+    ctx.stroke();
 
-    // 底面网格
-    ctx.strokeStyle = '#CBD5E1';
-    ctx.lineWidth = 0.3;
-    const gridStepL = truckL / 20;
-    for (let i = gridStepL; i < truckL; i += gridStepL) {
-      const [x1, y1] = toIso(i, 0, 0);
-      const [x2, y2] = toIso(i, truckW, 0);
-      ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
-    }
-    const gridStepW = truckW / 10;
-    for (let j = gridStepW; j < truckW; j += gridStepW) {
-      const [x1, y1] = toIso(0, j, 0);
-      const [x2, y2] = toIso(truckL, j, 0);
-      ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
-    }
-
-    // ===== 2. 车厢边框线（深灰开放式框架） =====
-    const frameColor = '#475569';
-    ctx.strokeStyle = frameColor;
-    ctx.lineWidth = 1.5;
-    // 后面两条竖线
-    let [lx1, ly1] = toIso(0, 0, 0); let [lx2, ly2] = toIso(0, 0, truckH);
-    ctx.beginPath(); ctx.moveTo(px(lx1), py(ly1)); ctx.lineTo(px(lx2), py(ly2)); ctx.stroke();
-    [lx1, ly1] = toIso(0, truckW, 0); [lx2, ly2] = toIso(0, truckW, truckH);
-    ctx.beginPath(); ctx.moveTo(px(lx1), py(ly1)); ctx.lineTo(px(lx2), py(ly2)); ctx.stroke();
-    // 前面两条竖线
-    [lx1, ly1] = toIso(truckL, 0, 0); [lx2, ly2] = toIso(truckL, 0, truckH);
-    ctx.beginPath(); ctx.moveTo(px(lx1), py(ly1)); ctx.lineTo(px(lx2), py(ly2)); ctx.stroke();
-    [lx1, ly1] = toIso(truckL, truckW, 0); [lx2, ly2] = toIso(truckL, truckW, truckH);
-    ctx.beginPath(); ctx.moveTo(px(lx1), py(ly1)); ctx.lineTo(px(lx2), py(ly2)); ctx.stroke();
-    // 顶面四条边
-    ctx.lineWidth = 1;
-    const topLines: [number, number, number, number, number, number][] = [
-      [0, 0, truckH, truckL, 0, truckH],
-      [truckL, 0, truckH, truckL, truckW, truckH],
-      [truckL, truckW, truckH, 0, truckW, truckH],
-      [0, truckW, truckH, 0, 0, truckH],
-    ];
-    for (const [ax, ay, az, bx2, by2, bz] of topLines) {
-      const [x1, y1] = toIso(ax, ay, az);
-      const [x2, y2] = toIso(bx2, by2, bz);
-      ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
-    }
-    // 底面四条边（加强）
-    ctx.lineWidth = 1.5;
-    const bottomLines: [number, number, number, number, number, number][] = [
-      [0, 0, 0, truckL, 0, 0],
-      [truckL, 0, 0, truckL, truckW, 0],
-      [truckL, truckW, 0, 0, truckW, 0],
-      [0, truckW, 0, 0, 0, 0],
-    ];
-    for (const [ax, ay, az, bx2, by2, bz] of bottomLines) {
-      const [x1, y1] = toIso(ax, ay, az);
-      const [x2, y2] = toIso(bx2, by2, bz);
-      ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
-    }
-
-    // ===== 3. 托盘与货物 =====
-    const baseColor = input.boxColor || '#C4A882';
-    const palletColor = '#EAB308'; // 亮黄色托盘
-    const palletDark = '#CA8A04';
-    const palletSide = '#A16207';
-    const boxStroke = '#8B7355';
-
+    // 托盘
     for (let row = 0; row < truckLoad.rows; row++) {
       for (let col = 0; col < truckLoad.palletsPerRow; col++) {
-        const palX = row * palletL + 0.05;
-        const palY = col * palletW + 0.05;
-        const palDrawL = palletL - 0.1;
-        const palDrawW = palletW - 0.1;
+        const px = row * palletL + 0.1;
+        const py = col * palletW + 0.1;
+        const [p1x, p1y] = toIso(px, py, 0);
+        const [p2x, p2y] = toIso(px + palletL - 0.2, py, 0);
+        const [p3x, p3y] = toIso(px + palletL - 0.2, py + palletW - 0.2, 0);
+        const [p4x, p4y] = toIso(px, py + palletW - 0.2, 0);
 
-        // ---- 托盘底座 ----
-        drawIsoBox(palX, palY, 0, palDrawL, palDrawW, palletH,
-          palletColor, palletDark, palletSide, '#78350F');
+        ctx.beginPath();
+        ctx.moveTo(tx(p1x), ty(p1y)); ctx.lineTo(tx(p2x), ty(p2y));
+        ctx.lineTo(tx(p3x), ty(p3y)); ctx.lineTo(tx(p4x), ty(p4y));
+        ctx.closePath();
+        ctx.fillStyle = input.boxColor || '#C4A882';
+        ctx.globalAlpha = 0.7;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.5; ctx.stroke();
 
-        // ---- 托盘顶部网格纹理 ----
-        ctx.strokeStyle = '#78350F';
-        ctx.lineWidth = 0.2;
-        const gs = palDrawL / 8;
-        for (let gi = gs; gi < palDrawL; gi += gs) {
-          const [x1, y1] = toIso(palX + gi, palY, palletH);
-          const [x2, y2] = toIso(palX + gi, palY + palDrawW, palletH);
-          ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
-        }
-
-        // ---- 每层箱体 ----
-        for (let layer = 0; layer < totalLayers; layer++) {
-          const layerZ = palletH + layer * boxH;
-          const t = layer / Math.max(totalLayers - 1, 1);
-          const r = Math.min(255, Math.round(196 + t * 20));
-          const g = Math.min(255, Math.round(150 + t * 18));
-          const b = Math.min(255, Math.round(98 + t * 22));
-          const layerTop = `rgb(${r + 18},${g + 18},${b + 18})`;
-          const layerFront = `rgb(${r},${g},${b})`;
-          const layerSide = `rgb(${Math.max(0, r - 25)},${Math.max(0, g - 25)},${Math.max(0, b - 20)})`;
-
-          let currentW = 0;
-          for (const section of plan.sections) {
-            const secW = section.boxAlongWidth / 100;
-            const bL = section.boxAlongLength / 100;
-            const bW = section.boxAlongWidth / 100;
-
-            for (let sRow = 0; sRow < section.countAlongWidth; sRow++) {
-              for (let sCol = 0; sCol < section.countAlongLength; sCol++) {
-                let bx = palX + sCol * bL + 0.02;
-                let by = palY + currentW + sRow * bW + 0.02;
-                if (flipWidth) bx = palX + palDrawL - (sCol + 1) * bL + 0.02;
-                if (flipLength) by = palY + palDrawW - (currentW + (sRow + 1) * bW) + 0.02;
-
-                drawIsoBox(bx, by, layerZ, bL - 0.04, bW - 0.04, boxH - 0.04,
-                  layerTop, layerFront, layerSide, boxStroke);
-              }
-            }
-            currentW += section.countAlongWidth * bW;
-          }
-        }
+        // 托盘顶部线
+        const [t1x, t1y] = toIso(px, py, palletH_d);
+        const [t2x, t2y] = toIso(px + palletL - 0.2, py, palletH_d);
+        const [t3x, t3y] = toIso(px + palletL - 0.2, py + palletW - 0.2, palletH_d);
+        const [t4x, t4y] = toIso(px, py + palletW - 0.2, palletH_d);
+        ctx.beginPath();
+        ctx.moveTo(tx(t1x), ty(t1y)); ctx.lineTo(tx(t2x), ty(t2y));
+        ctx.lineTo(tx(t3x), ty(t3y)); ctx.lineTo(tx(t4x), ty(t4y));
+        ctx.closePath();
+        ctx.fillStyle = adjustBrightness(input.boxColor || '#C4A882', 10);
+        ctx.globalAlpha = 0.5;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.3; ctx.stroke();
       }
     }
 
-    // ===== 4. 车辆名称 =====
+    // 卡车名称
     ctx.fillStyle = '#1E293B';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(input.truck.name, displayW / 2, 16);
 
-  }, [truckLoad, input, plan, layers, flipLength, flipWidth]);
+  }, [truckLoad, input, plan]);
 
   useEffect(() => {
     if (viewMode === 'pallet') drawPalletView();
