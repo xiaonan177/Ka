@@ -117,7 +117,7 @@ export default function ReportCanvas({ plan, input, layers, flipLength, flipWidt
 
     // ========== 5. 底部信息汇总 ==========
     const summaryY = Math.max(curY, 830);
-    const summaryH = 58;
+    const summaryH = 72;
     drawSummary(ctx, 20, summaryY, W - 40, summaryH, plan, input.pallet, input.maxHeight);
 
   }, [plan, input, layers, flipLength, flipWidth, truckLoad]);
@@ -734,6 +734,9 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   drawSectionTitle(ctx, x + 14, y - 16, titleW, '信息汇总');
 
   // 内容两列
+  const lengthDiff = pallet.length - plan.coverageLength;
+  const widthDiff = pallet.width - plan.coverageWidth;
+
   const leftItems = [
     `箱体尺寸: ${plan.originalBox.width} × ${plan.originalBox.length} × ${plan.originalBox.height} 毫米`,
     `堆码方式: ${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`,
@@ -743,6 +746,8 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   const rightItems = [
     `每托箱数: ${plan.totalBoxes} 箱`,
     `托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`,
+    `长度: 产品占${plan.coverageLength}mm${lengthDiff >= 0 ? `，余${lengthDiff}mm` : `，超${Math.abs(lengthDiff)}mm`}`,
+    `宽度: 产品占${plan.coverageWidth}mm${widthDiff >= 0 ? `，余${widthDiff}mm` : `，超${Math.abs(widthDiff)}mm`}`,
     `托盘总高度: ${plan.totalHeight} 毫米 (不超过 ${maxHeight} 毫米)`,
     `可使用标准运输及仓储设备作业`,
   ];

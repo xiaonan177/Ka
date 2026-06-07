@@ -113,18 +113,65 @@ export function LayerEditor({
       currentY += section.countAlongWidth * bW;
     });
 
-    // 尺寸标注
-    ctx.fillStyle = '#3B82F6';
+    // 尺寸标注 — 托盘长度 + 产品占用长度
+    const coverageL = plan.coverageLength;
+    const remainL = input.pallet.length - coverageL;
+
+    // 托盘长度标注
+    ctx.fillStyle = '#1E293B';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(`${input.pallet.length} mm`, ox + palletL * scale / 2, oy + palletW * scale + 6);
 
+    // 产品占用长度标注（托盘下方第二条线）
+    const coverageLDraw = (coverageL / input.pallet.length) * palletL * scale;
+    const annoY2 = oy + palletW * scale + 22;
+    ctx.strokeStyle = '#3B82F6';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ox, annoY2);
+    ctx.lineTo(ox + coverageLDraw, annoY2);
+    ctx.stroke();
+    // 箭头
+    ctx.beginPath(); ctx.moveTo(ox, annoY2); ctx.lineTo(ox + 4, annoY2 - 2.5); ctx.lineTo(ox + 4, annoY2 + 2.5); ctx.closePath(); ctx.fillStyle = '#3B82F6'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(ox + coverageLDraw, annoY2); ctx.lineTo(ox + coverageLDraw - 4, annoY2 - 2.5); ctx.lineTo(ox + coverageLDraw - 4, annoY2 + 2.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#3B82F6';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`产品 ${coverageL}mm${remainL >= 0 ? ` 余${remainL}mm` : ` 超${Math.abs(remainL)}mm`}`, ox + coverageLDraw / 2, annoY2 + 4);
+
+    // 托盘宽度标注
+    ctx.fillStyle = '#1E293B';
+    ctx.font = '11px sans-serif';
     ctx.save();
     ctx.translate(ox - 6, oy + palletW * scale / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textBaseline = 'top';
     ctx.fillText(`${input.pallet.width} mm`, 0, 0);
+    ctx.restore();
+
+    // 产品占用宽度标注（左侧第二条线）
+    const coverageW = plan.coverageWidth;
+    const remainW = input.pallet.width - coverageW;
+    const coverageWDraw = (coverageW / input.pallet.width) * palletW * scale;
+    const annoX2 = ox - 22;
+    ctx.strokeStyle = '#3B82F6';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(annoX2, oy);
+    ctx.lineTo(annoX2, oy + coverageWDraw);
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(annoX2, oy); ctx.lineTo(annoX2 - 2.5, oy + 4); ctx.lineTo(annoX2 + 2.5, oy + 4); ctx.closePath(); ctx.fillStyle = '#3B82F6'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(annoX2, oy + coverageWDraw); ctx.lineTo(annoX2 - 2.5, oy + coverageWDraw - 4); ctx.lineTo(annoX2 + 2.5, oy + coverageWDraw - 4); ctx.closePath(); ctx.fill();
+    ctx.save();
+    ctx.translate(annoX2 - 4, oy + coverageWDraw / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#3B82F6';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`产品 ${coverageW}mm${remainW >= 0 ? ` 余${remainW}mm` : ` 超${Math.abs(remainW)}mm`}`, 0, 0);
     ctx.restore();
 
   }, [plan, input, flipLength, flipWidth]);

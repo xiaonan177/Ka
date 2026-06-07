@@ -347,7 +347,8 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       )}
 
       {/* 合规检查 */}
-      <div className="p-3 border-t border-slate-200">
+      <div className="p-3 border-t border-slate-200 space-y-1.5">
+        {/* 高度检查 */}
         <div className="flex items-center gap-2 text-xs">
           {heightOk ? (
             <><span className="text-emerald-500">✓</span><span className="text-emerald-700">高度 {totalH.toLocaleString()}mm ≤ {input.maxHeight.toLocaleString()}mm 限制</span></>
@@ -355,6 +356,32 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
             <><span className="text-amber-500">⚠</span><span className="text-amber-700">高度 {totalH.toLocaleString()}mm &gt; {input.maxHeight.toLocaleString()}mm 限制</span></>
           )}
         </div>
+        {/* 长度对比 */}
+        {(() => {
+          const diffL = input.pallet.length - plan.coverageLength;
+          return (
+            <div className="flex items-center gap-2 text-xs">
+              {diffL >= 0 ? (
+                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">长度: 产品占 {plan.coverageLength}mm，托盘 {input.pallet.length}mm，剩余 {diffL}mm</span></>
+              ) : (
+                <><span className="text-amber-500">⚠</span><span className="text-amber-700">长度: 产品占 {plan.coverageLength}mm，超出托盘 {Math.abs(diffL)}mm</span></>
+              )}
+            </div>
+          );
+        })()}
+        {/* 宽度对比 */}
+        {(() => {
+          const diffW = input.pallet.width - plan.coverageWidth;
+          return (
+            <div className="flex items-center gap-2 text-xs">
+              {diffW >= 0 ? (
+                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">宽度: 产品占 {plan.coverageWidth}mm，托盘 {input.pallet.width}mm，剩余 {diffW}mm</span></>
+              ) : (
+                <><span className="text-amber-500">⚠</span><span className="text-amber-700">宽度: 产品占 {plan.coverageWidth}mm，超出托盘 {Math.abs(diffW)}mm</span></>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* 下载按钮 */}
