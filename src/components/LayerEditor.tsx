@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { PalletPlan, PalletizeInput, LayerSection, mmToDm } from '@/lib/palletize';
-import { useZoomPan } from '@/hooks/useZoomPan';
 
 interface LayerEditorProps {
   plan: PalletPlan | null;
@@ -20,7 +19,6 @@ export function LayerEditor({
   onLayersChange, onFlipLengthChange, onFlipWidthChange,
 }: LayerEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { zoom, panX, panY, zoomIn, zoomOut, resetView, bindCanvas, unbindCanvas } = useZoomPan(1);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -38,11 +36,6 @@ export function LayerEditor({
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, displayW, displayH);
 
-    // 应用缩放和平移
-    ctx.save();
-    ctx.translate(panX, panY);
-    ctx.scale(zoom, zoom);
-
     const palletL = mmToDm(input.pallet.length);
     const palletW = mmToDm(input.pallet.width);
     const margin = 40;
@@ -54,20 +47,20 @@ export function LayerEditor({
 
     // 标题
     ctx.fillStyle = '#1E293B';
-    ctx.font = `bold ${13 / zoom}px sans-serif`;
+    ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('编辑层 — 俯视图', displayW / 2 / 1, 16 / zoom);
+    ctx.fillText('编辑层 — 俯视图', displayW / 2, 16);
 
     // 托盘
     ctx.fillStyle = '#E8E8E8';
     ctx.strokeStyle = '#999';
-    ctx.lineWidth = 2 / zoom;
+    ctx.lineWidth = 2;
     ctx.fillRect(ox, oy, palletL * scale, palletW * scale);
     ctx.strokeRect(ox, oy, palletL * scale, palletW * scale);
 
     // 托盘网格
     ctx.strokeStyle = '#D0D0D0';
-    ctx.lineWidth = 0.5 / zoom;
+    ctx.lineWidth = 0.5;
     for (let i = 1; i < palletL; i++) {
       const x = ox + i * scale;
       ctx.beginPath(); ctx.moveTo(x, oy); ctx.lineTo(x, oy + palletW * scale); ctx.stroke();
@@ -103,7 +96,7 @@ export function LayerEditor({
 
           // 边框
           ctx.strokeStyle = '#8B7355';
-          ctx.lineWidth = 0.8 / zoom;
+          ctx.lineWidth = 0.8;
           ctx.strokeRect(drawX, drawY, bw, bh);
 
           // 产品名 (如果空间足够)
@@ -126,7 +119,7 @@ export function LayerEditor({
 
     // 托盘长度标注
     ctx.fillStyle = '#1E293B';
-    ctx.font = `${11 / zoom}px sans-serif`;
+    ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(`${input.pallet.length} mm`, ox + palletL * scale / 2, oy + palletW * scale + 6);
@@ -135,7 +128,7 @@ export function LayerEditor({
     const coverageLDraw = (coverageL / input.pallet.length) * palletL * scale;
     const annoY2 = oy + palletW * scale + 22;
     ctx.strokeStyle = '#3B82F6';
-    ctx.lineWidth = 1 / zoom;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(ox, annoY2);
     ctx.lineTo(ox + coverageLDraw, annoY2);
@@ -144,13 +137,13 @@ export function LayerEditor({
     ctx.beginPath(); ctx.moveTo(ox, annoY2); ctx.lineTo(ox + 4, annoY2 - 2.5); ctx.lineTo(ox + 4, annoY2 + 2.5); ctx.closePath(); ctx.fillStyle = '#3B82F6'; ctx.fill();
     ctx.beginPath(); ctx.moveTo(ox + coverageLDraw, annoY2); ctx.lineTo(ox + coverageLDraw - 4, annoY2 - 2.5); ctx.lineTo(ox + coverageLDraw - 4, annoY2 + 2.5); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#3B82F6';
-    ctx.font = `${10 / zoom}px sans-serif`;
+    ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`产品 ${coverageL}mm${remainL >= 0 ? ` 余${remainL}mm` : ` 超${Math.abs(remainL)}mm`}`, ox + coverageLDraw / 2, annoY2 + 4);
 
     // 托盘宽度标注
     ctx.fillStyle = '#1E293B';
-    ctx.font = `${11 / zoom}px sans-serif`;
+    ctx.font = '11px sans-serif';
     ctx.save();
     ctx.translate(ox - 6, oy + palletW * scale / 2);
     ctx.rotate(-Math.PI / 2);
@@ -164,7 +157,7 @@ export function LayerEditor({
     const coverageWDraw = (coverageW / input.pallet.width) * palletW * scale;
     const annoX2 = ox - 22;
     ctx.strokeStyle = '#3B82F6';
-    ctx.lineWidth = 1 / zoom;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(annoX2, oy);
     ctx.lineTo(annoX2, oy + coverageWDraw);
@@ -175,27 +168,19 @@ export function LayerEditor({
     ctx.translate(annoX2 - 4, oy + coverageWDraw / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = '#3B82F6';
-    ctx.font = `${10 / zoom}px sans-serif`;
+    ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillText(`产品 ${coverageW}mm${remainW >= 0 ? ` 余${remainW}mm` : ` 超${Math.abs(remainW)}mm`}`, 0, 0);
     ctx.restore();
 
-    ctx.restore(); // 恢复缩放平移变换
-
-  }, [plan, input, flipLength, flipWidth, zoom, panX, panY]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    bindCanvas(canvas);
-    return () => unbindCanvas(canvas);
-  }, [bindCanvas, unbindCanvas]);
+  }, [plan, input, flipLength, flipWidth]);
 
   useEffect(() => { draw(); }, [draw]);
 
   return (
     <div className="flex-1 flex flex-col bg-white min-w-0">
-      {/* 排列策略选择 + 缩放控制 */}
+      {/* 排列策略选择 */}
       <div className="px-3 py-2 border-b border-slate-200 bg-slate-50">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-bold text-slate-700">📐 排列方式:</span>
@@ -204,19 +189,12 @@ export function LayerEditor({
           </span>
           <span className="text-slate-400">|</span>
           <span className="text-slate-600">{plan?.orientation || '—'}</span>
-          <span className="flex-1" />
-          {/* 缩放控制 */}
-          <button onClick={zoomOut} className="w-6 h-6 flex items-center justify-center rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm leading-none">−</button>
-          <span className="text-[10px] text-slate-500 w-10 text-center font-mono">{Math.round(zoom * 100)}%</span>
-          <button onClick={zoomIn} className="w-6 h-6 flex items-center justify-center rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm leading-none">+</button>
-          <button onClick={resetView} className="px-1.5 h-6 flex items-center justify-center rounded bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px]">重置</button>
         </div>
       </div>
 
       {/* 俯视图 Canvas */}
-      <div className="flex-1 p-2 relative">
-        <canvas ref={canvasRef} className="w-full h-full cursor-grab active:cursor-grabbing" style={{ minHeight: 300 }} />
-        <div className="absolute bottom-3 left-3 text-[10px] text-slate-400 pointer-events-none">滚轮缩放 · 拖拽平移</div>
+      <div className="flex-1 p-2">
+        <canvas ref={canvasRef} className="w-full h-full" style={{ minHeight: 300 }} />
       </div>
 
       {/* 工具栏 */}
