@@ -13,12 +13,9 @@ const C = {
   boxLight: '#E2BE96',
   boxDark: '#B8895E',
   boxStroke: '#A07040',
-  palletTop: '#2563EB',
-  palletFace: '#1D4ED8',
-  palletColor: '#1E40AF',
-  palletFoot: '#1E3A8A',
-  palletEdge: '#93C5FD',
-  palletBeam: '#1E40AF',
+  palletColor: '#2D2D2D',
+  palletTop: '#3A3A3A',
+  palletFace: '#333333',
   blue: '#2385BB',
   blueLine: '#3B82F6',
   red: '#E03C31',
@@ -419,69 +416,11 @@ function drawPalletDetail(ctx: CanvasRenderingContext2D, x: number, y: number, w
   const shadowPts = [iso(3, 3, -3), iso(sL + 3, 3, -3), iso(sL + 3, sW + 3, -3), iso(3, sW + 3, -3)];
   drawPolygon(ctx, shadowPts, 'rgba(0,0,0,0.08)', 'rgba(0,0,0,0)');
 
-  // === 蓝色塑料托盘 ===
-  const deckH = sH * 0.22;
-  const footH = sH - deckH;
-  const footL = sL * 0.08;
-  const footW = sW * 0.08;
-  const beamH = footH * 0.35;
+  // 顶面
+  drawPolygon(ctx, [iso(0, 0, sH), iso(sL, 0, sH), iso(sL, sW, sH), iso(0, sW, sH)], C.palletTop, '#555555');
 
-  // 3×3脚墩
-  const footPos = [
-    { x: sL * 0.1, y: sW * 0.1 },
-    { x: sL * 0.5 - footL / 2, y: sW * 0.1 },
-    { x: sL * 0.9 - footL, y: sW * 0.1 },
-    { x: sL * 0.1, y: sW * 0.5 - footW / 2 },
-    { x: sL * 0.5 - footL / 2, y: sW * 0.5 - footW / 2 },
-    { x: sL * 0.9 - footL, y: sW * 0.5 - footW / 2 },
-    { x: sL * 0.1, y: sW * 0.9 - footW },
-    { x: sL * 0.5 - footL / 2, y: sW * 0.9 - footW },
-    { x: sL * 0.9 - footL, y: sW * 0.9 - footW },
-  ];
-
-  for (const fp of footPos) {
-    // 正面
-    drawPolygon(ctx,
-      [iso(fp.x, fp.y + footW, footH), iso(fp.x + footL, fp.y + footW, footH),
-       iso(fp.x + footL, fp.y + footW, 0), iso(fp.x, fp.y + footW, 0)],
-      C.palletFace, C.palletFoot);
-    // 右面
-    drawPolygon(ctx,
-      [iso(fp.x + footL, fp.y, footH), iso(fp.x + footL, fp.y + footW, footH),
-       iso(fp.x + footL, fp.y + footW, 0), iso(fp.x + footL, fp.y, 0)],
-      C.palletColor, C.palletFoot);
-    // 顶面
-    drawPolygon(ctx,
-      [iso(fp.x, fp.y, footH), iso(fp.x + footL, fp.y, footH),
-       iso(fp.x + footL, fp.y + footW, footH), iso(fp.x, fp.y + footW, footH)],
-      C.palletTop, C.palletFoot);
-  }
-
-  // 横梁
-  const beamRows = [sW * 0.1 + footW / 2, sW * 0.5, sW * 0.9 - footW / 2];
-  for (const by of beamRows) {
-    const bw = sW * 0.04;
-    // 正面
-    drawPolygon(ctx,
-      [iso(0, by - bw / 2, beamH), iso(sL, by - bw / 2, beamH),
-       iso(sL, by - bw / 2, 0), iso(0, by - bw / 2, 0)],
-      C.palletBeam, C.palletFoot);
-    // 右面
-    drawPolygon(ctx,
-      [iso(sL, by - bw / 2, beamH), iso(sL, by + bw / 2, beamH),
-       iso(sL, by + bw / 2, 0), iso(sL, by - bw / 2, 0)],
-      C.palletColor, C.palletFoot);
-    // 顶面
-    drawPolygon(ctx,
-      [iso(0, by - bw / 2, beamH), iso(sL, by - bw / 2, beamH),
-       iso(sL, by + bw / 2, beamH), iso(0, by + bw / 2, beamH)],
-      C.palletTop, C.palletFoot);
-  }
-
-  // 顶板
-  drawPolygon(ctx, [iso(0, 0, sH), iso(sL, 0, sH), iso(sL, sW, sH), iso(0, sW, sH)], C.palletTop, C.palletFoot);
-  // 顶面网格
-  ctx.strokeStyle = '#60A5FA';
+  // 网格纹理
+  ctx.strokeStyle = '#4A4A4A';
   ctx.lineWidth = 0.4;
   const gsL = sL / 12;
   for (let i = gsL; i < sL; i += gsL) {
@@ -493,27 +432,29 @@ function drawPalletDetail(ctx: CanvasRenderingContext2D, x: number, y: number, w
     const p1 = iso(0, j, sH); const p2 = iso(sL, j, sH);
     ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
   }
-  // 顶面边框高光
-  ctx.strokeStyle = C.palletEdge;
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  const [e1, e2, e3, e4] = [iso(0, 0, sH), iso(sL, 0, sH), iso(sL, sW, sH), iso(0, sW, sH)];
-  ctx.moveTo(e1[0], e1[1]); ctx.lineTo(e2[0], e2[1]); ctx.lineTo(e3[0], e3[1]); ctx.lineTo(e4[0], e4[1]);
-  ctx.closePath(); ctx.stroke();
 
-  // 顶板正面边缘
-  drawPolygon(ctx, [iso(0, sW, sH), iso(sL, sW, sH), iso(sL, sW, footH), iso(0, sW, footH)], C.palletFace, C.palletFoot);
-  // 顶板右面边缘
-  drawPolygon(ctx, [iso(sL, 0, sH), iso(sL, sW, sH), iso(sL, sW, footH), iso(sL, 0, footH)], C.palletColor, C.palletFoot);
+  // 前面
+  drawPolygon(ctx, [iso(0, 0, sH), iso(0, 0, 0), iso(0, sW, 0), iso(0, sW, sH)], C.palletFace, '#444444');
+  drawPolygon(ctx, [iso(0, 0, sH), iso(0, 0, 0), iso(sL, 0, 0), iso(sL, 0, sH)], C.palletColor, '#333333');
 
-  // 叉车孔标记
-  const forkH = footH * 0.6;
-  for (const fy of [sW * 0.1, sW * 0.5 - footW / 2, sW * 0.9 - footW]) {
-    const fw = footW * 0.7;
+  // 川字脚垫
+  const beamW = sW * 0.07;
+  for (const offset of [0.15, 0.5, 0.85]) {
+    const bY = sW * offset - beamW / 2;
+    drawPolygon(ctx, [iso(0, bY, 0), iso(sL, bY, 0), iso(sL, bY + beamW, 0), iso(0, bY + beamW, 0)], '#222222', '#111111');
+  }
+
+  // 叉车孔（前面3个）
+  const forkH = sH * 0.45;
+  const forkY1 = sW * 0.15;
+  const forkY2 = sW * 0.5 - beamW / 2;
+  const forkY3 = sW * 0.85;
+  for (const fy of [forkY1, forkY2, forkY3]) {
+    const fw = beamW * 0.6;
     drawPolygon(ctx, [
-      iso(0, fy, footH * 0.3), iso(sL * 0.3, fy, footH * 0.3),
-      iso(sL * 0.3, fy + fw, footH * 0.3), iso(0, fy + fw, footH * 0.3)
-    ], '#1E3A8A', '#172554');
+      iso(0, fy, sH * 0.2), iso(sL * 0.3, fy, sH * 0.2),
+      iso(sL * 0.3, fy + fw, sH * 0.2), iso(0, fy + fw, sH * 0.2)
+    ], '#1A1A1A', '#111111');
   }
 
   // 右侧文字标注
@@ -570,60 +511,28 @@ function drawStackedView(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   const shadowPts = [iso(-5, -5, 0), iso(sL + 5, -5, 0), iso(sL + 5, sW + 5, 0), iso(-5, sW + 5, 0)];
   drawPolygon(ctx, shadowPts, 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0)');
 
-  // === 蓝色塑料托盘 ===
+  // === 托盘 ===
   const ph = sPH;
-  const deckH = ph * 0.22;
-  const footH = ph - deckH;
-  const footL = sL * 0.08;
-  const footW = sW * 0.08;
-  const beamHH = footH * 0.35;
-
-  // 3×3脚墩
-  const footPoss = [
-    { x: sL * 0.1, y: sW * 0.1 }, { x: sL * 0.5 - footL / 2, y: sW * 0.1 }, { x: sL * 0.9 - footL, y: sW * 0.1 },
-    { x: sL * 0.1, y: sW * 0.5 - footW / 2 }, { x: sL * 0.5 - footL / 2, y: sW * 0.5 - footW / 2 }, { x: sL * 0.9 - footL, y: sW * 0.5 - footW / 2 },
-    { x: sL * 0.1, y: sW * 0.9 - footW }, { x: sL * 0.5 - footL / 2, y: sW * 0.9 - footW }, { x: sL * 0.9 - footL, y: sW * 0.9 - footW },
-  ];
-  for (const fp of footPoss) {
-    drawPolygon(ctx, [iso(fp.x, fp.y + footW, footH), iso(fp.x + footL, fp.y + footW, footH), iso(fp.x + footL, fp.y + footW, 0), iso(fp.x, fp.y + footW, 0)], C.palletFace, C.palletFoot);
-    drawPolygon(ctx, [iso(fp.x + footL, fp.y, footH), iso(fp.x + footL, fp.y + footW, footH), iso(fp.x + footL, fp.y + footW, 0), iso(fp.x + footL, fp.y, 0)], C.palletColor, C.palletFoot);
-    drawPolygon(ctx, [iso(fp.x, fp.y, footH), iso(fp.x + footL, fp.y, footH), iso(fp.x + footL, fp.y + footW, footH), iso(fp.x, fp.y + footW, footH)], C.palletTop, C.palletFoot);
-  }
-
-  // 横梁
-  const beamR = [sW * 0.1 + footW / 2, sW * 0.5, sW * 0.9 - footW / 2];
-  for (const by of beamR) {
-    const bw = sW * 0.04;
-    drawPolygon(ctx, [iso(0, by - bw / 2, beamHH), iso(sL, by - bw / 2, beamHH), iso(sL, by - bw / 2, 0), iso(0, by - bw / 2, 0)], C.palletBeam, C.palletFoot);
-    drawPolygon(ctx, [iso(sL, by - bw / 2, beamHH), iso(sL, by + bw / 2, beamHH), iso(sL, by + bw / 2, 0), iso(sL, by - bw / 2, 0)], C.palletColor, C.palletFoot);
-    drawPolygon(ctx, [iso(0, by - bw / 2, beamHH), iso(sL, by - bw / 2, beamHH), iso(sL, by + bw / 2, beamHH), iso(0, by + bw / 2, beamHH)], C.palletTop, C.palletFoot);
-  }
-
-  // 顶板
-  drawPolygon(ctx, [iso(0, 0, ph), iso(sL, 0, ph), iso(sL, sW, ph), iso(0, sW, ph)], C.palletTop, C.palletFoot);
+  // 顶面
+  drawPolygon(ctx, [iso(0, 0, ph), iso(sL, 0, ph), iso(sL, sW, ph), iso(0, sW, ph)], C.palletTop, '#555555');
   // 顶面网格
-  ctx.strokeStyle = '#60A5FA';
+  ctx.strokeStyle = '#4A4A4A';
   ctx.lineWidth = 0.3;
   const gs = sL / 12;
   for (let i = gs; i < sL; i += gs) {
     const p1 = iso(i, 0, ph); const p2 = iso(i, sW, ph);
     ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
   }
-  const gsw = sW / 10;
-  for (let j = gsw; j < sW; j += gsw) {
-    const p1 = iso(0, j, ph); const p2 = iso(sL, j, ph);
-    ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+  // 前面
+  drawPolygon(ctx, [iso(0, 0, ph), iso(0, 0, 0), iso(0, sW, 0), iso(0, sW, ph)], C.palletFace, '#444444');
+  drawPolygon(ctx, [iso(0, 0, ph), iso(0, 0, 0), iso(sL, 0, 0), iso(sL, 0, ph)], C.palletColor, '#333333');
+
+  // 脚垫
+  const beamW = sW * 0.06;
+  for (const off of [0.15, 0.5, 0.85]) {
+    const bY = sW * off - beamW / 2;
+    drawPolygon(ctx, [iso(0, bY, 0), iso(sL, bY, 0), iso(sL, bY + beamW, 0), iso(0, bY + beamW, 0)], '#222222', '#111111');
   }
-  // 顶面边框高光
-  ctx.strokeStyle = C.palletEdge;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  const [pe1, pe2, pe3, pe4] = [iso(0, 0, ph), iso(sL, 0, ph), iso(sL, sW, ph), iso(0, sW, ph)];
-  ctx.moveTo(pe1[0], pe1[1]); ctx.lineTo(pe2[0], pe2[1]); ctx.lineTo(pe3[0], pe3[1]); ctx.lineTo(pe4[0], pe4[1]);
-  ctx.closePath(); ctx.stroke();
-  // 顶板正面边缘
-  drawPolygon(ctx, [iso(0, sW, ph), iso(sL, sW, ph), iso(sL, sW, footH), iso(0, sW, footH)], C.palletFace, C.palletFoot);
-  drawPolygon(ctx, [iso(sL, 0, ph), iso(sL, sW, ph), iso(sL, sW, footH), iso(sL, 0, footH)], C.palletColor, C.palletFoot);
 
   // === 箱体层 ===
   const sections = plan.sections;
