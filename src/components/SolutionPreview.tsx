@@ -180,10 +180,16 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       return [(x - y) * cos30, (x + y) * sin30 - z];
     }
 
-    const maxExt = Math.max(truckL, truckW, truckH);
-    const sc = Math.min(displayW * 0.3, displayH * 0.3) / maxExt;
-    const cx = displayW * 0.4;
-    const cy = displayH * 0.75;
+    // 计算等轴测后的完整包围盒，自适应缩放
+    const [minIsoX, maxIsoX] = [toIso(0, truckW, 0)[0], toIso(truckL, 0, 0)[0]];
+    const [minIsoY, maxIsoY] = [toIso(truckL, 0, truckH)[1], toIso(0, truckW, 0)[1]];
+    const isoW = maxIsoX - minIsoX;
+    const isoH = maxIsoY - minIsoY;
+
+    const padding = 30;
+    const sc = Math.min((displayW - padding * 2) / isoW, (displayH - padding * 2 - 20) / isoH);
+    const cx = displayW / 2 - (minIsoX + isoW / 2) * sc;
+    const cy = displayH / 2 + 10 - (minIsoY + isoH / 2) * sc;
 
     const tx = (v: number) => cx + v * sc;
     const ty = (v: number) => cy + v * sc;
