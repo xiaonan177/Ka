@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { PalletPlan, PalletizeInput, TruckLoadResult, mmToDm, calculateTruckLoad } from '@/lib/palletize';
+import { useZoomPan } from '@/hooks/useZoomPan';
 
 interface SolutionPreviewProps {
   plan: PalletPlan | null;
@@ -15,6 +16,7 @@ interface SolutionPreviewProps {
 export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, onDownloadReport }: SolutionPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewMode, setViewMode] = useState<'pallet' | 'truck'>('pallet');
+  const { zoom, panX, panY, zoomIn, zoomOut, resetView, bindCanvas, unbindCanvas } = useZoomPan(1);
 
   const truckLoad: TruckLoadResult | null = plan && input.truck
     ? calculateTruckLoad(input.truck, input.pallet.length, input.pallet.width, plan.totalHeight, plan.boxesPerLayer * layers, input.boxWeight)
@@ -37,6 +39,11 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     ctx.fillStyle = '#FAFAFA';
     ctx.fillRect(0, 0, displayW, displayH);
 
+    // 应用缩放和平移
+    ctx.save();
+    ctx.translate(panX, panY);
+    ctx.scale(zoom, zoom);
+
     // 等轴测参数
     const palletL = mmToDm(input.pallet.length);
     const palletW = mmToDm(input.pallet.width);
@@ -57,8 +64,8 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     // 计算缩放
     const maxExt = Math.max(palletL, palletW, palletH + totalLayers * boxH);
     const scale = Math.min(displayW * 0.35, displayH * 0.35) / maxExt;
-    const cx = displayW * 0.45;
-    const cy = displayH * 0.7;
+    const cx = displayW * 0.45 / zoom;
+    const cy = displayH * 0.7 / zoom;
 
     function drawIso(x: number, y: number, z: number, w: number, d: number, h: number, fillColor: string, strokeColor: string) {
       const [x1, y1] = toIso(x, y, z);
@@ -80,7 +87,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       ctx.closePath();
       ctx.fillStyle = adjustBrightness(fillColor, -25);
       ctx.fill();
-      ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.5 / zoom; ctx.stroke();
 
       // 正面
       ctx.beginPath();
@@ -89,7 +96,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       ctx.closePath();
       ctx.fillStyle = adjustBrightness(fillColor, -10);
       ctx.fill();
-      ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.5 / zoom; ctx.stroke();
 
       // 顶面
       ctx.beginPath();
@@ -98,7 +105,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
       ctx.closePath();
       ctx.fillStyle = adjustBrightness(fillColor, 15);
       ctx.fill();
-      ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.strokeStyle = strokeColor; ctx.lineWidth = 0.5 / zoom; ctx.stroke();
     }
 
     // 绘制托盘
@@ -132,7 +139,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     const [tx2, ty2] = toIso(palletL + 1, 0, totalH);
 
     ctx.strokeStyle = '#3B82F6';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 / zoom;
     ctx.setLineDash([]);
     ctx.beginPath();
     ctx.moveTo(cx + lx * scale, cy + ly * scale);
@@ -142,11 +149,13 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     // 总高度文字
     const totalHmm = input.pallet.height + totalLayers * plan.boxStackHeight;
     ctx.fillStyle = '#DC2626';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = `bold ${14 / zoom}px sans-serif`;
     ctx.textAlign = 'left';
-    ctx.fillText(`${totalHmm.toLocaleString()} mm`, cx + tx2 * scale + 8, cy + (ly + ty2) * scale / 2);
+    ctx.fillText(`${totalHmm.toLocaleString()} mm`, cx + tx2 * scale + 8 / zoom, cy + (ly + ty2) * scale / 2);
 
-  }, [plan, input, layers, flipLength, flipWidth]);
+    ctx.restore(); // 恢复缩放平移
+
+  }, [plan, input, layers, flipLength, flipWidth, zoom, panX, panY]);
 
   const drawTruckView = useCallback(() => {
     const canvas = canvasRef.current;
@@ -164,6 +173,11 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
 
     ctx.fillStyle = '#FAFAFA';
     ctx.fillRect(0, 0, displayW, displayH);
+
+    // 应用缩放和平移
+    ctx.save();
+    ctx.translate(panX, panY);
+    ctx.scale(zoom, zoom);
 
     const truckL = mmToDm(input.truck.length);
     const truckW = mmToDm(input.truck.width);
@@ -187,9 +201,9 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     const isoH = maxIsoY - minIsoY;
 
     const padding = 30;
-    const sc = Math.min((displayW - padding * 2) / isoW, (displayH - padding * 2 - 20) / isoH);
-    const cx = displayW / 2 - (minIsoX + isoW / 2) * sc;
-    const cy = displayH / 2 + 10 - (minIsoY + isoH / 2) * sc;
+    const sc = Math.min((displayW / zoom - padding * 2) / isoW, (displayH / zoom - padding * 2 - 20) / isoH);
+    const cx = displayW / zoom / 2 - (minIsoX + isoW / 2) * sc;
+    const cy = displayH / zoom / 2 + 10 - (minIsoY + isoH / 2) * sc;
 
     const tx = (v: number) => cx + v * sc;
     const ty = (v: number) => cy + v * sc;
@@ -208,12 +222,12 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
     ctx.closePath();
     ctx.fillStyle = '#F1F5F9';
     ctx.fill();
-    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1.5 / zoom; ctx.stroke();
 
     // 侧面线
     ctx.beginPath();
     ctx.moveTo(tx(a1), ty(b1)); ctx.lineTo(tx(a5), ty(b5));
-    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 1 / zoom; ctx.stroke();
 
     const [a6, b6] = toIso(truckL, 0, truckH);
     ctx.beginPath();
@@ -245,7 +259,7 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
         ctx.globalAlpha = 0.7;
         ctx.fill();
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.5 / zoom; ctx.stroke();
 
         // 托盘顶部线
         const [t1x, t1y] = toIso(px, py, palletH_d);
@@ -260,17 +274,25 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
         ctx.globalAlpha = 0.5;
         ctx.fill();
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.3; ctx.stroke();
+        ctx.strokeStyle = '#8B7355'; ctx.lineWidth = 0.3 / zoom; ctx.stroke();
       }
     }
 
     // 卡车名称
     ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = `bold ${12 / zoom}px sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(input.truck.name, displayW / 2, 16);
+    ctx.fillText(input.truck.name, displayW / zoom / 2, 16 / zoom);
 
-  }, [truckLoad, input, plan]);
+    ctx.restore(); // 恢复缩放平移
+
+  }, [truckLoad, input, plan, zoom, panX, panY]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    bindCanvas(canvas);
+    return () => unbindCanvas(canvas);
+  }, [bindCanvas, unbindCanvas]);
 
   useEffect(() => {
     if (viewMode === 'pallet') drawPalletView();
@@ -316,8 +338,8 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
         </div>
       </div>
 
-      {/* 视图切换 */}
-      <div className="flex border-b border-slate-200">
+      {/* 视图切换 + 缩放控制 */}
+      <div className="flex border-b border-slate-200 items-center">
         <button
           onClick={() => setViewMode('pallet')}
           className={`flex-1 py-2 text-xs font-medium ${viewMode === 'pallet' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -332,11 +354,18 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
             🚛 车辆视图
           </button>
         )}
+        <div className="flex items-center gap-1 px-2 border-l border-slate-200">
+          <button onClick={zoomOut} className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs leading-none">−</button>
+          <span className="text-[9px] text-slate-400 w-8 text-center font-mono">{Math.round(zoom * 100)}%</span>
+          <button onClick={zoomIn} className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs leading-none">+</button>
+          <button onClick={resetView} className="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 text-slate-500 text-[9px]">⟲</button>
+        </div>
       </div>
 
       {/* Canvas预览 */}
-      <div className="flex-1 p-2">
-        <canvas ref={canvasRef} className="w-full h-full" style={{ minHeight: 350 }} />
+      <div className="flex-1 p-2 relative">
+        <canvas ref={canvasRef} className="w-full h-full cursor-grab active:cursor-grabbing" style={{ minHeight: 350 }} />
+        <div className="absolute bottom-3 left-3 text-[10px] text-slate-400 pointer-events-none">滚轮缩放 · 拖拽平移</div>
       </div>
 
       {/* 车辆装载信息 */}
