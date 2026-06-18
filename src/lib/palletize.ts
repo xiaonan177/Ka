@@ -22,7 +22,6 @@ export interface TruckDimensions {
   length: number; // mm
   width: number;  // mm
   height: number; // mm
-  maxWeight?: number; // kg (可选)
 }
 
 export interface LayerSection {
@@ -108,14 +107,14 @@ export const PALLET_PRESETS: { name: string; length: number; width: number; heig
 // ==================== 车辆预设 ====================
 
 export const TRUCK_PRESETS: TruckDimensions[] = [
-  { name: '欧标卡车 标准', length: 13600, width: 2480, height: 2700, maxWeight: 24000 },
-  { name: '欧标卡车 加高型', length: 13600, width: 2480, height: 3000, maxWeight: 24000 },
-  { name: '美标53英尺挂车', length: 16154, width: 2591, height: 2743, maxWeight: 22000 },
-  { name: '美标48英尺挂车', length: 14630, width: 2591, height: 2743, maxWeight: 20000 },
-  { name: '20英尺集装箱', length: 5898, width: 2352, height: 2393, maxWeight: 21700 },
-  { name: '40英尺集装箱', length: 12032, width: 2352, height: 2393, maxWeight: 26000 },
-  { name: '40英尺高柜集装箱', length: 12032, width: 2352, height: 2698, maxWeight: 26000 },
-  { name: '45英尺高柜集装箱', length: 13556, width: 2352, height: 2698, maxWeight: 28000 },
+  { name: '欧标卡车 标准', length: 13600, width: 2480, height: 2700 },
+  { name: '欧标卡车 加高型', length: 13600, width: 2480, height: 3000 },
+  { name: '美标53英尺挂车', length: 16154, width: 2591, height: 2743 },
+  { name: '美标48英尺挂车', length: 14630, width: 2591, height: 2743 },
+  { name: '20英尺集装箱', length: 5898, width: 2352, height: 2393 },
+  { name: '40英尺集装箱', length: 12032, width: 2352, height: 2393 },
+  { name: '40英尺高柜集装箱', length: 12032, width: 2352, height: 2698 },
+  { name: '45英尺高柜集装箱', length: 13556, width: 2352, height: 2698 },
 ];
 
 // ==================== 核心算法 ====================
