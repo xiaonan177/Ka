@@ -100,9 +100,9 @@ export default function Home() {
       <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* 主内容区域 */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-auto">
         {activeTab === "pallet" && (
-          <div className="flex-1 flex min-h-0">
+          <div className="flex min-h-full">
             {/* 左侧输入面板 */}
             <InputForm input={input} onChange={setInput} onCalculate={handleCalculate} />
             {/* 中间层编辑器 */}

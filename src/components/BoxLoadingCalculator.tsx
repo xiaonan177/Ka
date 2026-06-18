@@ -129,9 +129,9 @@ export function BoxLoadingCalculator() {
   const selectedResult = results[selectedIdx];
 
   return (
-    <div className="flex-1 flex min-h-0">
+    <div className="flex-1 flex h-full">
       {/* 左侧输入面板 */}
-      <div className="w-64 bg-slate-50 border-r border-slate-200 p-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="w-64 bg-slate-50 border-r border-slate-200 p-4 flex flex-col gap-4 overflow-y-auto h-full">
         <section>
           <h3 className="text-sm font-semibold text-slate-700 mb-2 border-b border-slate-200 pb-1">产品信息</h3>
           <div className="space-y-2">
