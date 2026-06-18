@@ -11,7 +11,7 @@
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
+├── public/                 # 靜态资源
 ├── scripts/                # 构建与启动脚本
 │   ├── build.sh            # 构建脚本
 │   ├── dev.sh              # 开发环境启动脚本
@@ -19,17 +19,53 @@
 │   └── start.sh            # 生产环境启动脚本
 ├── src/
 │   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
+│   │   └── page.tsx        # 主页面 - 打托装柜计算器
+│   ├── components/         # 业务组件
+│   │   ├── InputForm.tsx   # 输入表单（支持单产品/多SKU）
+│   │   ├── LayerEditor.tsx # 层编辑器（2D俯视图）
+│   │   ├── SolutionPreview.tsx # 方案预览（3D等轴视图）
+│   │   ├── ContainerPreview.tsx # 装柜示意图（集装箱俯视图）
+│   │   ├── WarningPanel.tsx # 预警提示组件
+│   │   ├── PDFExport.tsx   # PDF导出组件
+│   │   ├── ReportCanvas.tsx # 报告画布
+│   │   └ ui/              # Shadcn UI 组件库
 │   ├── hooks/              # 自定义 Hooks
 │   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
+│   │   ├── palletize.ts    # 打托排版算法核心
+│   │   └ utils.ts         # 通用工具函数 (cn)
 │   └── server.ts           # 自定义服务端入口
 ├── next.config.ts          # Next.js 配置
 ├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+└ tsconfig.json            # TypeScript 配置
 ```
 
 - 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+
+## 核心功能模块
+
+### 打托装柜计算器 (src/lib/palletize.ts)
+
+核心算法模块，提供：
+- **单产品打托计算**: `calculatePalletPlan()` - 计算最优摆放方向、层数、利用率
+- **多SKU装柜计算**: `calculateMultiSKU()` - 多产品汇总托盘需求
+- **集装箱装柜计算**: `calculateContainerLoad()` - 集装箱利用率分析
+- **预警检查**: `checkWarnings()` - 高度/重量/载重/门高预警
+
+预设数据：
+- `PALLET_PRESETS`: 12种标准托盘规格
+- `TRUCK_PRESETS`: 8种车辆/集装箱规格
+- `CONTAINER_PRESETS`: 20GP/40GP/40HC/45HC详细参数
+
+### 界面组件
+
+| 组件 | 功能 |
+|------|------|
+| InputForm | 产品录入（单产品/多SKU）、托盘参数、集装箱选择 |
+| LayerEditor | 2D俯视图，可视化层排列 |
+| SolutionPreview | 3D等轴视图，托盘堆叠效果 |
+| ContainerPreview | 集装箱俯视图，托盘装载示意 |
+| WarningPanel | 预警提示（超高/超重/超载/门高） |
+| PDFExport | PDF报告导出 |
 
 ## 包管理规范
 

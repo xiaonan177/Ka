@@ -24,6 +24,53 @@ export interface TruckDimensions {
   height: number; // mm
 }
 
+// 集装箱详细参数（符合PRD规格）
+export interface ContainerSpec {
+  name: string;
+  code: string;        // 箱码如 22G1
+  tareWeight: number;  // 皮重 kg
+  payload: number;     // 有效载荷 kg
+  doorWidth: number;   // 门宽 mm
+  doorHeight: number;  // 门高 mm
+  innerWidth: number;  // 内宽 mm
+  innerLength: number; // 内长 mm
+  innerHeight: number; // 内高 mm
+  volume: number;      // 内部体积 m³
+  actualLoad: number;  // 实际装货 m³
+}
+
+// 产品SKU信息
+export interface ProductSKU {
+  id: string;
+  name: string;
+  box: BoxDimensions;
+  boxWeight: number;
+  boxColor: string;
+  quantity: number;   // 需要装箱的总数量
+}
+
+// 多SKU计算结果
+export interface MultiSKUResult {
+  products: {
+    sku: ProductSKU;
+    plan: PalletPlan;
+    palletsNeeded: number;
+    totalWeight: number;
+  }[];
+  totalPallets: number;
+  totalWeight: number;
+  totalVolume: number;
+  warnings: Warning[];
+}
+
+// 预警类型
+export interface Warning {
+  type: 'height' | 'weight' | 'payload' | 'door';
+  severity: 'warning' | 'error';
+  message: string;
+  details: string;
+}
+
 export interface LayerSection {
   boxAlongLength: number;
   boxAlongWidth: number;
@@ -102,6 +149,63 @@ export const PALLET_PRESETS: { name: string; length: number; width: number; heig
   { name: '美标48寸 1219×1219mm', length: 1219, width: 1219, height: 152 },
   { name: '澳标托盘 1165×1165mm', length: 1165, width: 1165, height: 150 },
   { name: '亚标托盘 1100×1100mm', length: 1100, width: 1100, height: 150 },
+];
+
+// ==================== 集装箱预设 ====================
+
+export const CONTAINER_PRESETS: ContainerSpec[] = [
+  {
+    name: '20GP',
+    code: '22G1',
+    tareWeight: 2200,
+    payload: 28280,
+    doorWidth: 2340,
+    doorHeight: 2280,
+    innerWidth: 2350,
+    innerLength: 5898,
+    innerHeight: 2390,
+    volume: 33.2,
+    actualLoad: 28,
+  },
+  {
+    name: '40GP',
+    code: '42G1',
+    tareWeight: 3800,
+    payload: 26680,
+    doorWidth: 2340,
+    doorHeight: 2280,
+    innerWidth: 2350,
+    innerLength: 12032,
+    innerHeight: 2390,
+    volume: 67.7,
+    actualLoad: 58,
+  },
+  {
+    name: '40HC',
+    code: '45G1',
+    tareWeight: 3900,
+    payload: 26580,
+    doorWidth: 2340,
+    doorHeight: 2580,
+    innerWidth: 2350,
+    innerLength: 12032,
+    innerHeight: 2698,
+    volume: 76.3,
+    actualLoad: 65,
+  },
+  {
+    name: '45HC',
+    code: 'L5G1',
+    tareWeight: 4800,
+    payload: 25680,
+    doorWidth: 2340,
+    doorHeight: 2580,
+    innerWidth: 2350,
+    innerLength: 13556,
+    innerHeight: 2698,
+    volume: 86.0,
+    actualLoad: 76,
+  },
 ];
 
 // ==================== 车辆预设 ====================
@@ -341,4 +445,275 @@ export function formatStacking(countL: number, countW: number, layers: number): 
 
 export function mmToDm(mm: number): number {
   return mm / 100;
+}
+
+// ==================== 集装箱装柜计算 ====================
+
+export interface ContainerLoadResult {
+  palletsPerRow: number;    // 每排托盘数
+  rows: number;             // 排数
+  totalPallets: number;     // 总托盘数
+  totalBoxes: number;       // 总箱数
+  totalWeight: number;      // 总重量 kg
+  lengthUsed: number;       // 已用长度 mm
+  widthUsed: number;        // 已用宽度 mm
+  heightUsed: number;       // 已用高度 mm
+  volumeUtilization: number; // 体积利用率 %
+  weightUtilization: number; // 重量利用率 %
+  remainingLength: number;  // 剩余长度 mm
+  remainingPayload: number; // 剩余载重 kg
+  remainingVolume: number;  // 剩余体积 m³
+  warnings: Warning[];      // 预警列表
+  palletOrientation: 'L-along' | 'W-along'; // 托盘摆放方向
+}
+
+/** 计算集装箱装柜方案 */
+export function calculateContainerLoad(
+  container: ContainerSpec,
+  palletLength: number,
+  palletWidth: number,
+  palletHeight: number,
+  boxesPerPallet: number,
+  boxWeight: number,
+  requestedPallets?: number
+): ContainerLoadResult {
+  const warnings: Warning[] = [];
+  
+  // 检查门高限制
+  if (palletHeight > container.doorHeight) {
+    warnings.push({
+      type: 'door',
+      severity: 'error',
+      message: '托盘高度超过集装箱门高',
+      details: `托盘高度 ${palletHeight}mm > 门高 ${container.doorHeight}mm，无法装柜`,
+    });
+  }
+  
+  // 检查托盘高度是否超过箱内高度
+  if (palletHeight > container.innerHeight) {
+    warnings.push({
+      type: 'height',
+      severity: 'error',
+      message: '托盘高度超过集装箱内高',
+      details: `托盘高度 ${palletHeight}mm > 内高 ${container.innerHeight}mm`,
+    });
+  }
+  
+  // 计算两种摆放方式
+  // 方案1：托盘长边沿集装箱长方向
+  const opt1 = {
+    palletsPerRow: Math.floor(container.innerWidth / palletWidth),
+    rows: Math.floor(container.innerLength / palletLength),
+    orientation: 'L-along' as const,
+  };
+  
+  // 方案2：托盘宽边沿集装箱长方向（旋转90°）
+  const opt2 = {
+    palletsPerRow: Math.floor(container.innerWidth / palletLength),
+    rows: Math.floor(container.innerLength / palletWidth),
+    orientation: 'W-along' as const,
+  };
+  
+  const total1 = opt1.palletsPerRow * opt1.rows;
+  const total2 = opt2.palletsPerRow * opt2.rows;
+  
+  const best = total1 >= total2 ? opt1 : opt2;
+  let totalPallets = Math.max(total1, total2);
+  
+  // 如果指定了需要的托盘数，使用实际值
+  if (requestedPallets && requestedPallets < totalPallets) {
+    totalPallets = requestedPallets;
+    // 重新计算rows
+    best.rows = Math.ceil(totalPallets / best.palletsPerRow);
+  }
+  
+  const totalBoxes = totalPallets * boxesPerPallet;
+  const totalWeight = totalPallets * boxesPerPallet * boxWeight;
+  
+  // 重量校验
+  if (totalWeight > container.payload) {
+    warnings.push({
+      type: 'payload',
+      severity: 'error',
+      message: '总重量超过集装箱有效载荷',
+      details: `总重量 ${totalWeight.toFixed(0)}kg > 有效载荷 ${container.payload}kg`,
+    });
+  } else if (totalWeight > container.payload * 0.95) {
+    warnings.push({
+      type: 'payload',
+      severity: 'warning',
+      message: '接近载重上限',
+      details: `已使用 ${(totalWeight / container.payload * 100).toFixed(1)}% 载重`,
+    });
+  }
+  
+  // 高度警告
+  const heightUsed = Math.min(palletHeight, container.innerHeight);
+  if (palletHeight > container.innerHeight * 0.95) {
+    warnings.push({
+      type: 'height',
+      severity: 'warning',
+      message: '接近高度上限',
+      details: `托盘高度 ${palletHeight}mm，内高 ${container.innerHeight}mm`,
+    });
+  }
+  
+  // 计算利用率
+  const usedVolume = totalPallets * palletLength * palletWidth * heightUsed / 1e9; // m³
+  const volumeUtilization = (usedVolume / container.volume) * 100;
+  const weightUtilization = (totalWeight / container.payload) * 100;
+  
+  const lengthUsed = best.rows * (best.orientation === 'L-along' ? palletLength : palletWidth);
+  const widthUsed = best.palletsPerRow * (best.orientation === 'L-along' ? palletWidth : palletLength);
+  
+  return {
+    palletsPerRow: best.palletsPerRow,
+    rows: best.rows,
+    totalPallets,
+    totalBoxes,
+    totalWeight,
+    lengthUsed,
+    widthUsed,
+    heightUsed,
+    volumeUtilization: Math.round(volumeUtilization * 10) / 10,
+    weightUtilization: Math.round(weightUtilization * 10) / 10,
+    remainingLength: container.innerLength - lengthUsed,
+    remainingPayload: container.payload - totalWeight,
+    remainingVolume: container.volume - usedVolume,
+    warnings,
+    palletOrientation: best.orientation,
+  };
+}
+
+// ==================== 多SKU计算 ====================
+
+/** 计算多个SKU的打托方案 */
+export function calculateMultiSKU(
+  skus: ProductSKU[],
+  pallet: PalletDimensions,
+  maxHeight: number,
+  maxStackLayers: number = 0
+): MultiSKUResult {
+  const products: MultiSKUResult['products'] = [];
+  const warnings: Warning[] = [];
+  
+  for (const sku of skus) {
+    const input: PalletizeInput = {
+      productName: sku.name,
+      box: sku.box,
+      boxWeight: sku.boxWeight,
+      boxColor: sku.boxColor,
+      useCase: false,
+      caseBox: { length: 0, width: 0, height: 0 },
+      caseCount: 0,
+      pallet,
+      maxHeight,
+      maxStackLayers,
+      palletType: '自定义',
+      truckType: '不使用车辆',
+      truck: undefined,
+    };
+    
+    const result = calculatePalletPlan(input);
+    const bestPlan = result.bestPlan;
+    
+    if (!bestPlan) {
+      warnings.push({
+        type: 'weight',
+        severity: 'error',
+        message: `产品 "${sku.name}" 无法打托`,
+        details: '尺寸超出托盘范围或高度限制',
+      });
+      continue;
+    }
+    
+    const palletsNeeded = Math.ceil(sku.quantity / bestPlan.totalBoxes);
+    const lastPalletBoxes = sku.quantity % bestPlan.totalBoxes || bestPlan.totalBoxes;
+    const totalWeight = sku.quantity * sku.boxWeight;
+    
+    // 检查单托重量是否超限
+    const singlePalletWeight = bestPlan.totalBoxes * sku.boxWeight;
+    if (singlePalletWeight > 1000) {
+      warnings.push({
+        type: 'weight',
+        severity: 'warning',
+        message: `产品 "${sku.name}" 单托重量较大`,
+        details: `单托重量 ${singlePalletWeight.toFixed(0)}kg`,
+      });
+    }
+    
+    products.push({
+      sku,
+      plan: bestPlan,
+      palletsNeeded,
+      totalWeight,
+    });
+  }
+  
+  const totalPallets = products.reduce((sum, p) => sum + p.palletsNeeded, 0);
+  const totalWeight = products.reduce((sum, p) => sum + p.totalWeight, 0);
+  const totalVolume = products.reduce((sum, p) => {
+    const boxVol = p.sku.box.length * p.sku.box.width * p.sku.box.height / 1e9;
+    return sum + p.sku.quantity * boxVol;
+  }, 0);
+  
+  return {
+    products,
+    totalPallets,
+    totalWeight,
+    totalVolume,
+    warnings,
+  };
+}
+
+// ==================== 预警检查 ====================
+
+/** 检查托盘方案是否合规 */
+export function checkWarnings(
+  plan: PalletPlan,
+  maxHeight: number,
+  boxWeight: number,
+  container?: ContainerSpec
+): Warning[] {
+  const warnings: Warning[] = [];
+  
+  // 高度检查
+  if (plan.totalHeight > maxHeight) {
+    warnings.push({
+      type: 'height',
+      severity: 'error',
+      message: '托盘高度超过限制',
+      details: `托盘总高 ${plan.totalHeight}mm > 限制 ${maxHeight}mm`,
+    });
+  } else if (plan.totalHeight > maxHeight * 0.95) {
+    warnings.push({
+      type: 'height',
+      severity: 'warning',
+      message: '接近高度上限',
+      details: `已使用 ${(plan.totalHeight / maxHeight * 100).toFixed(1)}% 高度`,
+    });
+  }
+  
+  // 单托重量检查
+  const palletWeight = plan.totalBoxes * boxWeight;
+  if (palletWeight > 1000) {
+    warnings.push({
+      type: 'weight',
+      severity: 'warning',
+      message: '单托重量较大',
+      details: `单托重量 ${palletWeight.toFixed(0)}kg，注意搬运安全`,
+    });
+  }
+  
+  // 集装箱门高检查
+  if (container && plan.totalHeight > container.doorHeight) {
+    warnings.push({
+      type: 'door',
+      severity: 'error',
+      message: '托盘高度超过集装箱门高',
+      details: `托盘高度 ${plan.totalHeight}mm > 门高 ${container.doorHeight}mm`,
+    });
+  }
+  
+  return warnings;
 }
