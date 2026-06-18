@@ -126,42 +126,51 @@ export function ContainerLoadingCalculator() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // 计算缩放比例：画布可用空间 / 货柜尺寸（mm）
     const scale = Math.min(
-      (canvas.width - 60) / truck.length,
-      (canvas.height - 60) / truck.width
-    ) * 10; // dm为单位
+      (canvas.width - 80) / truck.length,
+      (canvas.height - 80) / truck.width
+    );
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // 绘制货柜轮廓
-    const truckLeft = 30;
-    const truckTop = 30;
-    const truckW = truck.length / 100 * scale;
-    const truckH = truck.width / 100 * scale;
+    const truckLeft = 40;
+    const truckTop = 40;
+    const truckW = truck.length * scale;
+    const truckH = truck.width * scale;
 
+    // 货柜背景
+    ctx.fillStyle = "#F8FAFC";
+    ctx.fillRect(truckLeft, truckTop, truckW, truckH);
     ctx.strokeStyle = "#374151";
     ctx.lineWidth = 2;
     ctx.strokeRect(truckLeft, truckTop, truckW, truckH);
 
     // 绘制托盘
-    const palletW = product.palletLength / 100 * scale;
-    const palletH = product.palletWidth / 100 * scale;
+    const palletW = product.palletLength * scale;
+    const palletH = product.palletWidth * scale;
 
-    ctx.fillStyle = product.color;
     for (let i = 0; i < selectedResult.palletsAlongLength; i++) {
       for (let j = 0; j < selectedResult.palletsAlongWidth; j++) {
         const x = truckLeft + i * palletW;
         const y = truckTop + j * palletH;
-        ctx.fillRect(x + 1, y + 1, palletW - 2, palletH - 2);
+        
+        // 托盘填充
+        ctx.fillStyle = product.color || "#C4A882";
+        ctx.fillRect(x + 2, y + 2, palletW - 4, palletH - 4);
+        
+        // 托盘边框
         ctx.strokeStyle = "#8B7355";
         ctx.lineWidth = 1;
-        ctx.strokeRect(x + 1, y + 1, palletW - 2, palletH - 2);
+        ctx.strokeRect(x + 2, y + 2, palletW - 4, palletH - 4);
 
-        // 标注托盘号
+        // 托盘编号
         ctx.fillStyle = "#333";
-        ctx.font = "10px sans-serif";
+        ctx.font = `${Math.max(8, Math.min(12, palletW / 6))}px sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText(`${i + 1}-${j + 1}`, x + palletW / 2, y + palletH / 2 + 4);
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${i + 1}-${j + 1}`, x + palletW / 2, y + palletH / 2);
       }
     }
 

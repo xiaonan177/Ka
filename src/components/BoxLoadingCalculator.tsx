@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { TRUCK_PRESETS, TruckDimensions, TruckLoadResult, calculateTruckLoad } from "@/lib/palletize";
 import dynamic from "next/dynamic";
 
@@ -107,6 +107,7 @@ export function BoxLoadingCalculator() {
   const [results, setResults] = useState<BoxLoadResult[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [showReport, setShowReport] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const handleTruckTypeChange = (type: string) => {
     setTruckType(type);
@@ -127,6 +128,69 @@ export function BoxLoadingCalculator() {
   }, [input, truck]);
 
   const selectedResult = results[selectedIdx];
+
+  // Canvas 绘制俯视图
+  useEffect(() => {
+    if (!selectedResult || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // 计算缩放比例
+    const scale = Math.min(
+      (canvas.width - 80) / truck.length,
+      (canvas.height - 80) / truck.width
+    );
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 货柜轮廓
+    const truckLeft = 40;
+    const truckTop = 40;
+    const truckW = truck.length * scale;
+    const truckH = truck.width * scale;
+
+    ctx.fillStyle = "#F8FAFC";
+    ctx.fillRect(truckLeft, truckTop, truckW, truckH);
+    ctx.strokeStyle = "#374151";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(truckLeft, truckTop, truckW, truckH);
+
+    // 绘制箱子排列
+    const boxW = input.length * scale;
+    const boxH = input.width * scale;
+
+    for (let i = 0; i < selectedResult.boxesAlongLength; i++) {
+      for (let j = 0; j < selectedResult.boxesAlongWidth; j++) {
+        const x = truckLeft + i * boxW;
+        const y = truckTop + j * boxH;
+        
+        ctx.fillStyle = input.color || "#C4A882";
+        ctx.fillRect(x + 2, y + 2, boxW - 4, boxH - 4);
+        ctx.strokeStyle = "#8B7355";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 2, y + 2, boxW - 4, boxH - 4);
+
+        // 箱号
+        ctx.fillStyle = "#333";
+        ctx.font = `${Math.max(8, Math.min(12, boxW / 6))}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${i + 1}-${j + 1}`, x + boxW / 2, y + boxH / 2);
+      }
+    }
+
+    // 尺寸标注
+    ctx.fillStyle = "#3B82F6";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`${truck.length}mm`, truckLeft + truckW / 2, truckTop + truckH + 20);
+    ctx.save();
+    ctx.translate(truckLeft - 20, truckTop + truckH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(`${truck.width}mm`, 0, 0);
+    ctx.restore();
+  }, [selectedResult, truck, input]);
 
   return (
     <div className="flex-1 flex h-full">
@@ -355,7 +419,7 @@ export function BoxLoadingCalculator() {
                 <div className="bg-white border rounded-lg p-4 col-span-2">
                   <h4 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-1">货柜俯视图</h4>
                   <canvas
-                    id="box-top-view"
+                    ref={canvasRef}
                     width={400}
                     height={300}
                     className="border bg-slate-50"
