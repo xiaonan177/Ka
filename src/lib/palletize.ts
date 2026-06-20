@@ -152,60 +152,50 @@ function tryUniformLayout(
   }];
 }
 
-/** 尝试混合方向排列 */
+/** 尝试混合方向排列（跨朝向组合） */
 function tryMixedLayout(
   palletLength: number,
   palletWidth: number,
-  alongLength: number,
-  alongWidth: number
+  box: BoxDimensions
 ): LayerSection[] | null {
-  const rotAlongLength = alongWidth;
-  const rotAlongWidth = alongLength;
+  // 生成所有6种朝向
+  const orientations = [
+    { alongLength: box.length, alongWidth: box.width, label: 'LWH' },   // 平放
+    { alongLength: box.width, alongWidth: box.length, label: 'WLH' },   // 平放旋转
+    { alongLength: box.length, alongWidth: box.height, label: 'LHW' },  // 侧放
+    { alongLength: box.height, alongWidth: box.length, label: 'HLW' },  // 侧放旋转
+    { alongLength: box.width, alongWidth: box.height, label: 'WHL' },   // 竖放
+    { alongLength: box.height, alongWidth: box.width, label: 'HWL' },   // 竖放旋转
+  ];
+
   let bestTotal = 0;
   let bestSections: LayerSection[] | null = null;
 
-  // 方案1：先排若干行原始方向，剩余宽度排旋转方向
-  const maxRowsOriginal = Math.floor(palletWidth / alongWidth);
-  for (let rowsOrig = 1; rowsOrig <= maxRowsOriginal; rowsOrig++) {
-    const usedWidthOrig = rowsOrig * alongWidth;
-    const remainWidth = palletWidth - usedWidthOrig;
+  // 遍历所有朝向组合（第一区和第二区用不同朝向）
+  for (const ori1 of orientations) {
+    for (const ori2 of orientations) {
+      // 方案：先排若干行ori1方向，剩余宽度排ori2方向
+      const maxRows1 = Math.floor(palletWidth / ori1.alongWidth);
+      for (let rows1 = 1; rows1 <= maxRows1; rows1++) {
+        const usedWidth1 = rows1 * ori1.alongWidth;
+        const remainWidth = palletWidth - usedWidth1;
 
-    if (remainWidth >= rotAlongWidth) {
-      const countL_orig = Math.floor(palletLength / alongLength);
-      const countL_rot = Math.floor(palletLength / rotAlongLength);
-      const countW_rot = Math.floor(remainWidth / rotAlongWidth);
+        if (remainWidth >= ori2.alongWidth) {
+          const countL1 = Math.floor(palletLength / ori1.alongLength);
+          const countL2 = Math.floor(palletLength / ori2.alongLength);
+          const countW2 = Math.floor(remainWidth / ori2.alongWidth);
 
-      if (countL_orig > 0 && countL_rot > 0 && countW_rot > 0) {
-        const total = countL_orig * rowsOrig + countL_rot * countW_rot;
-        if (total > bestTotal) {
-          bestTotal = total;
-          bestSections = [
-            { boxAlongLength: alongLength, boxAlongWidth: alongWidth, countAlongLength: countL_orig, countAlongWidth: rowsOrig, usedWidth: usedWidthOrig, boxCount: countL_orig * rowsOrig },
-            { boxAlongLength: rotAlongLength, boxAlongWidth: rotAlongWidth, countAlongLength: countL_rot, countAlongWidth: countW_rot, usedWidth: countW_rot * rotAlongWidth, boxCount: countL_rot * countW_rot },
-          ];
+          if (countL1 > 0 && countL2 > 0 && countW2 > 0) {
+            const total = countL1 * rows1 + countL2 * countW2;
+            if (total > bestTotal) {
+              bestTotal = total;
+              bestSections = [
+                { boxAlongLength: ori1.alongLength, boxAlongWidth: ori1.alongWidth, countAlongLength: countL1, countAlongWidth: rows1, usedWidth: usedWidth1, boxCount: countL1 * rows1 },
+                { boxAlongLength: ori2.alongLength, boxAlongWidth: ori2.alongWidth, countAlongLength: countL2, countAlongWidth: countW2, usedWidth: countW2 * ori2.alongWidth, boxCount: countL2 * countW2 },
+              ];
+            }
+          }
         }
-      }
-    }
-  }
-
-  // 方案2：先排若干行旋转方向，剩余宽度排原始方向
-  const maxRowsRotated = Math.floor(palletWidth / rotAlongWidth);
-  for (let rowsRot = 1; rowsRot <= maxRowsRotated; rowsRot++) {
-    const usedWidthRot = rowsRot * rotAlongWidth;
-    const remainWidth = palletWidth - usedWidthRot;
-
-    const countL_orig = Math.floor(palletLength / alongLength);
-    const countW_orig = Math.floor(remainWidth / alongWidth);
-
-    if (countL_orig > 0 && countW_orig > 0) {
-      const countL_rot = Math.floor(palletLength / rotAlongLength);
-      const total = countL_rot * rowsRot + countL_orig * countW_orig;
-      if (total > bestTotal) {
-        bestTotal = total;
-        bestSections = [
-          { boxAlongLength: rotAlongLength, boxAlongWidth: rotAlongWidth, countAlongLength: countL_rot, countAlongWidth: rowsRot, usedWidth: usedWidthRot, boxCount: countL_rot * rowsRot },
-          { boxAlongLength: alongLength, boxAlongWidth: alongWidth, countAlongLength: countL_orig, countAlongWidth: countW_orig, usedWidth: countW_orig * alongWidth, boxCount: countL_orig * countW_orig },
-        ];
       }
     }
   }
@@ -218,11 +208,12 @@ function findBestLayerLayout(
   palletLength: number,
   palletWidth: number,
   alongLength: number,
-  alongWidth: number
+  alongWidth: number,
+  box: BoxDimensions
 ): { sections: LayerSection[]; totalBoxes: number } {
   const uniform = tryUniformLayout(palletLength, palletWidth, alongLength, alongWidth);
   const uniformTotal = uniform ? uniform.reduce((s, sec) => s + sec.boxCount, 0) : 0;
-  const mixed = tryMixedLayout(palletLength, palletWidth, alongLength, alongWidth);
+  const mixed = tryMixedLayout(palletLength, palletWidth, box);
   const mixedTotal = mixed ? mixed.reduce((s, sec) => s + sec.boxCount, 0) : 0;
 
   if (mixedTotal > uniformTotal && mixed) return { sections: mixed, totalBoxes: mixedTotal };
@@ -244,7 +235,7 @@ export function calculatePalletPlan(input: PalletizeInput): PalletizeResult {
 
   orientations.forEach((ori, index) => {
     const { sections, totalBoxes: boxesPerLayer } = findBestLayerLayout(
-      pallet.length, pallet.width, ori.alongLength, ori.alongWidth
+      pallet.length, pallet.width, ori.alongLength, ori.alongWidth, box
     );
     if (boxesPerLayer <= 0 || sections.length === 0) return;
 
