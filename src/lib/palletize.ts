@@ -122,13 +122,11 @@ export const TRUCK_PRESETS: TruckDimensions[] = [
 
 /** 获取箱体6种摆放方向 */
 function getOrientations(box: BoxDimensions) {
+  // 产品不能倒置，高度只能作为堆叠高度，不能放在托盘表面
+  // 只有长和宽可以参与托盘表面摆放
   return [
-    { alongLength: box.length, alongWidth: box.width, stackHeight: box.height, label: '平放(LWH)' },
-    { alongLength: box.width, alongWidth: box.length, stackHeight: box.height, label: '平放(WLH)' },
-    { alongLength: box.length, alongWidth: box.height, stackHeight: box.width, label: '侧放(LHW)' },
-    { alongLength: box.height, alongWidth: box.length, stackHeight: box.width, label: '侧放(HLW)' },
-    { alongLength: box.width, alongWidth: box.height, stackHeight: box.length, label: '竖放(WHL)' },
-    { alongLength: box.height, alongWidth: box.width, stackHeight: box.length, label: '竖放(HWL)' },
+    { alongLength: box.length, alongWidth: box.width, stackHeight: box.height, label: '长沿托盘长' },
+    { alongLength: box.width, alongWidth: box.length, stackHeight: box.height, label: '宽沿托盘长' },
   ];
 }
 
