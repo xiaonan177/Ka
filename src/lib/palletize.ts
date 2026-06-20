@@ -156,14 +156,11 @@ function tryMixedLayout(
   palletWidth: number,
   box: BoxDimensions
 ): LayerSection[] | null {
-  // 生成所有6种朝向
+  // 产品不能倒置，只有长和宽可以参与托盘表面摆放
+  // 有效朝向：长×宽 或 宽×长
   const orientations = [
-    { alongLength: box.length, alongWidth: box.width, label: 'LWH' },   // 平放
-    { alongLength: box.width, alongWidth: box.length, label: 'WLH' },   // 平放旋转
-    { alongLength: box.length, alongWidth: box.height, label: 'LHW' },  // 侧放
-    { alongLength: box.height, alongWidth: box.length, label: 'HLW' },  // 侧放旋转
-    { alongLength: box.width, alongWidth: box.height, label: 'WHL' },   // 竖放
-    { alongLength: box.height, alongWidth: box.width, label: 'HWL' },   // 竖放旋转
+    { alongLength: box.length, alongWidth: box.width, label: '长沿托盘长' },
+    { alongLength: box.width, alongWidth: box.length, label: '宽沿托盘长' },
   ];
 
   let bestTotal = 0;
