@@ -51,6 +51,7 @@ export interface PalletPlan {
   coverageWidth: number;
   sections: LayerSection[];
   originalBox: BoxDimensions;
+  arrangementFormula: string;
 }
 
 export interface PalletizeInput {
@@ -262,6 +263,15 @@ export function calculatePalletPlan(input: PalletizeInput): PalletizeResult {
     const countAlongLength = primarySection.countAlongLength;
     const countAlongWidth = sections.reduce((s, sec) => s + sec.countAlongWidth, 0);
 
+    // 生成排列公式描述
+    let arrangementFormula: string;
+    if (sections.length === 1) {
+      arrangementFormula = `${sections[0].countAlongLength} × ${sections[0].countAlongWidth} = ${boxesPerLayer} 箱/层`;
+    } else {
+      const parts = sections.map(s => `${s.countAlongLength}×${s.countAlongWidth}`);
+      arrangementFormula = `${parts.join(' + ')} = ${boxesPerLayer} 箱/层`;
+    }
+
     const boxVolume = box.length * box.width * box.height;
     const usedVolume = totalBoxes * boxVolume;
     const palletVolume = pallet.length * pallet.width * (totalHeight - pallet.height);
@@ -288,6 +298,7 @@ export function calculatePalletPlan(input: PalletizeInput): PalletizeResult {
       coverageWidth,
       sections,
       originalBox: { ...box },
+      arrangementFormula,
     });
   });
 

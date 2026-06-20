@@ -175,7 +175,7 @@ function drawParamTable(ctx: CanvasRenderingContext2D, x: number, y: number, pla
     { header: '箱体类型', value: '产品箱', w: 100 },
     { header: '箱体尺寸(长×宽×高 毫米)', value: `W${box.width} × L${box.length} × H${box.height}`, w: 300 },
     { header: '堆码方式(长×宽×高)', value: `${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`, w: 210 },
-    { header: '每层箱数(箱)', value: String(plan.boxesPerLayer), w: 140 },
+    { header: '每层箱数(箱)', value: plan.arrangementFormula.split(' = ')[1]?.replace(' 箱/层', '') || String(plan.boxesPerLayer), w: 140 },
     { header: '层数(层)', value: String(plan.layers), w: 100 },
     { header: '每托箱数(箱)', value: String(plan.totalBoxes), w: 140 },
   ];
@@ -227,7 +227,7 @@ function drawTopView(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.fillStyle = C.black;
   ctx.font = '13px "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`排列方式: ${plan.countAlongLength} × ${plan.countAlongWidth} (俯视图)`, x + w / 2, y + 16);
+  ctx.fillText(`排列方式: ${plan.arrangementFormula.split(' = ')[0]} (俯视图)`, x + w / 2, y + 16);
 
   const drawY = y + 24;
   const drawH = h - 44;
@@ -739,7 +739,7 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
 
   const leftItems = [
     `箱体尺寸: ${plan.originalBox.width} × ${plan.originalBox.length} × ${plan.originalBox.height} 毫米`,
-    `堆码方式: ${plan.countAlongLength} × ${plan.countAlongWidth} × ${plan.layers}`,
+    `堆码方式: ${plan.arrangementFormula.split(' = ')[0]} × ${plan.layers}层`,
     `每层箱数: ${plan.boxesPerLayer} 箱`,
     `层数: ${plan.layers} 层`,
   ];

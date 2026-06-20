@@ -185,7 +185,7 @@ export function LayerEditor({
         <div className="flex items-center gap-2 text-xs">
           <span className="font-bold text-slate-700">📐 排列方式:</span>
           <span className="text-slate-600">
-            {plan ? `${plan.countAlongLength} × ${plan.countAlongWidth} = ${plan.boxesPerLayer} 箱/层` : '—'}
+            {plan ? plan.arrangementFormula : '—'}
           </span>
           <span className="text-slate-400">|</span>
           <span className="text-slate-600">{plan?.orientation || '—'}</span>
