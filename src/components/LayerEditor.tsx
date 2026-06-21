@@ -224,15 +224,16 @@ export function LayerEditor({
           </label>
         </div>
 
-        {/* 层数控制 */}
-        <div className="flex items-center gap-3 text-xs">
-          <span className="font-bold text-slate-700">层数:</span>
+        {/* 层数滑动条 */}
+        <div className="flex items-center gap-3 py-1">
+          <span className="font-bold text-slate-700 text-sm">📦 层数</span>
           <input
             type="range" min={1} max={20} value={layers}
             onChange={e => onLayersChange(Number(e.target.value))}
-            className="flex-1 accent-blue-500"
+            className="flex-1 h-2 accent-blue-500 cursor-pointer"
+            style={{ minWidth: 150 }}
           />
-          <span className="w-6 text-center font-mono">{layers}</span>
+          <span className="w-8 text-center font-mono font-bold text-blue-600 bg-blue-50 rounded px-2 py-1">{layers}</span>
         </div>
       </div>
     </div>
