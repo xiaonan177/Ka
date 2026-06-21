@@ -356,28 +356,36 @@ export function SolutionPreview({ plan, input, layers, flipLength, flipWidth, on
             <><span className="text-amber-500">⚠</span><span className="text-amber-700">高度 {totalH.toLocaleString()}mm &gt; {input.maxHeight.toLocaleString()}mm 限制</span></>
           )}
         </div>
-        {/* 长度对比 */}
+        {/* 长度对比（带计算公式） */}
         {(() => {
           const diffL = input.pallet.length - plan.coverageLength;
+          // 生成长度方向计算公式（取覆盖最大的段）
+          const maxLSection = plan.sections.reduce((max, s) => 
+            (s.boxAlongLength * s.countAlongLength) > (max.boxAlongLength * max.countAlongLength) ? s : max
+          , plan.sections[0]);
+          const lengthFormula = `${maxLSection.boxAlongLength}×${maxLSection.countAlongLength}`;
           return (
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-start gap-2 text-xs">
               {diffL >= 0 ? (
-                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">长度: 产品占 {plan.coverageLength}mm，托盘 {input.pallet.length}mm，剩余 {diffL}mm</span></>
+                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">长: {lengthFormula}={plan.coverageLength}mm ≤ 托盘{input.pallet.length}mm，余{diffL}mm</span></>
               ) : (
-                <><span className="text-amber-500">⚠</span><span className="text-amber-700">长度: 产品占 {plan.coverageLength}mm，超出托盘 {Math.abs(diffL)}mm</span></>
+                <><span className="text-amber-500">⚠</span><span className="text-amber-700">长: {lengthFormula}={plan.coverageLength}mm &gt; 托盘{input.pallet.length}mm，超{Math.abs(diffL)}mm</span></>
               )}
             </div>
           );
         })()}
-        {/* 宽度对比 */}
+        {/* 宽度对比（带计算公式） */}
         {(() => {
           const diffW = input.pallet.width - plan.coverageWidth;
+          // 生成宽度方向计算公式（各段求和）
+          const widthFormulaParts = plan.sections.map(s => `${s.boxAlongWidth}×${s.countAlongWidth}`);
+          const widthFormula = widthFormulaParts.join(' + ');
           return (
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-start gap-2 text-xs">
               {diffW >= 0 ? (
-                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">宽度: 产品占 {plan.coverageWidth}mm，托盘 {input.pallet.width}mm，剩余 {diffW}mm</span></>
+                <><span className="text-emerald-500">✓</span><span className="text-emerald-700">宽: {widthFormula}={plan.coverageWidth}mm ≤ 托盘{input.pallet.width}mm，余{diffW}mm</span></>
               ) : (
-                <><span className="text-amber-500">⚠</span><span className="text-amber-700">宽度: 产品占 {plan.coverageWidth}mm，超出托盘 {Math.abs(diffW)}mm</span></>
+                <><span className="text-amber-500">⚠</span><span className="text-amber-700">宽: {widthFormula}={plan.coverageWidth}mm &gt; 托盘{input.pallet.width}mm，超{Math.abs(diffW)}mm</span></>
               )}
             </div>
           );

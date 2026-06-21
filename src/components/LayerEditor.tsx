@@ -113,9 +113,15 @@ export function LayerEditor({
       currentY += section.countAlongWidth * bW;
     });
 
-    // 尺寸标注 — 托盘长度 + 产品占用长度
+    // 尺寸标注 — 托盘长度 + 产品占用长度（带计算公式）
     const coverageL = plan.coverageLength;
     const remainL = input.pallet.length - coverageL;
+
+    // 生成长度方向计算公式（取覆盖最大的段）
+    const maxLSection = plan.sections.reduce((max, s) => 
+      (s.boxAlongLength * s.countAlongLength) > (max.boxAlongLength * max.countAlongLength) ? s : max
+    , plan.sections[0]);
+    const lengthFormula = `${maxLSection.boxAlongLength}×${maxLSection.countAlongLength}=${maxLSection.boxAlongLength * maxLSection.countAlongLength}`;
 
     // 托盘长度标注
     ctx.fillStyle = '#1E293B';
@@ -139,7 +145,8 @@ export function LayerEditor({
     ctx.fillStyle = '#3B82F6';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`产品 ${coverageL}mm${remainL >= 0 ? ` 余${remainL}mm` : ` 超${Math.abs(remainL)}mm`}`, ox + coverageLDraw / 2, annoY2 + 4);
+    // 显示计算公式 + 结果
+    ctx.fillText(`长 ${lengthFormula}mm${remainL >= 0 ? ` 余${remainL}mm` : ` 超${Math.abs(remainL)}mm`}`, ox + coverageLDraw / 2, annoY2 + 4);
 
     // 托盘宽度标注
     ctx.fillStyle = '#1E293B';
@@ -151,9 +158,13 @@ export function LayerEditor({
     ctx.fillText(`${input.pallet.width} mm`, 0, 0);
     ctx.restore();
 
-    // 产品占用宽度标注（左侧第二条线）
+    // 产品占用宽度标注（左侧第二条线，带计算公式）
     const coverageW = plan.coverageWidth;
     const remainW = input.pallet.width - coverageW;
+    // 生成宽度方向计算公式（各段求和）
+    const widthFormulaParts = plan.sections.map(s => `${s.boxAlongWidth}×${s.countAlongWidth}`);
+    const widthFormula = widthFormulaParts.join(' + ') + ` = ${coverageW}`;
+
     const coverageWDraw = (coverageW / input.pallet.width) * palletW * scale;
     const annoX2 = ox - 22;
     ctx.strokeStyle = '#3B82F6';
@@ -171,7 +182,8 @@ export function LayerEditor({
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(`产品 ${coverageW}mm${remainW >= 0 ? ` 余${remainW}mm` : ` 超${Math.abs(remainW)}mm`}`, 0, 0);
+    // 显示计算公式 + 结果
+    ctx.fillText(`宽 ${widthFormula}mm${remainW >= 0 ? ` 余${remainW}mm` : ` 超${Math.abs(remainW)}mm`}`, 0, 0);
     ctx.restore();
 
   }, [plan, input, flipLength, flipWidth]);

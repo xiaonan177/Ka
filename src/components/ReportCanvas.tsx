@@ -737,6 +737,15 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   const lengthDiff = pallet.length - plan.coverageLength;
   const widthDiff = pallet.width - plan.coverageWidth;
 
+  // 生成长度方向计算公式（取覆盖最大的段）
+  const maxLSection = plan.sections.reduce((max, s) => 
+    (s.boxAlongLength * s.countAlongLength) > (max.boxAlongLength * max.countAlongLength) ? s : max
+  , plan.sections[0]);
+  const lengthFormula = `${maxLSection.boxAlongLength}×${maxLSection.countAlongLength}=${plan.coverageLength}`;
+  // 生成宽度方向计算公式（各段求和）
+  const widthFormulaParts = plan.sections.map(s => `${s.boxAlongWidth}×${s.countAlongWidth}`);
+  const widthFormula = widthFormulaParts.join(' + ') + `=${plan.coverageWidth}`;
+
   const leftItems = [
     `箱体尺寸: ${plan.originalBox.width} × ${plan.originalBox.length} × ${plan.originalBox.height} 毫米`,
     `堆码方式: ${plan.arrangementFormula.split(' = ')[0]} × ${plan.layers}层`,
@@ -746,8 +755,8 @@ function drawSummary(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   const rightItems = [
     `每托箱数: ${plan.totalBoxes} 箱`,
     `托盘尺寸: ${pallet.width} × ${pallet.length} × ${pallet.height} 毫米`,
-    `长度: 产品占${plan.coverageLength}mm${lengthDiff >= 0 ? `，余${lengthDiff}mm` : `，超${Math.abs(lengthDiff)}mm`}`,
-    `宽度: 产品占${plan.coverageWidth}mm${widthDiff >= 0 ? `，余${widthDiff}mm` : `，超${Math.abs(widthDiff)}mm`}`,
+    `长: ${lengthFormula}mm${lengthDiff >= 0 ? ` 余${lengthDiff}mm` : ` 超${Math.abs(lengthDiff)}mm`}`,
+    `宽: ${widthFormula}mm${widthDiff >= 0 ? ` 余${widthDiff}mm` : ` 超${Math.abs(widthDiff)}mm`}`,
     `托盘总高度: ${plan.totalHeight} 毫米 (不超过 ${maxHeight} 毫米)`,
     `可使用标准运输及仓储设备作业`,
   ];
